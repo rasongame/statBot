@@ -2,20 +2,30 @@ package main
 
 import (
 	"fmt"
+	"github.com/glebarez/sqlite"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"gorm.io/gorm"
 	"log"
-	"math"
 	"os"
-	"strconv"
 	"strings"
-	"time"
+)
+
+type CacheUser struct {
+	User     User
+	LifeTime int64
+}
+
+const (
+	LinFloodID int64 = -1001373811109
+	ReportChat int64 = 559723688
+	Superuser  int64 = 559723688
 )
 
 var (
+	DB           *gorm.DB
 	Handlers     map[string]Handler
-	ReportChat   int64 = 559723688
-	Superuser    int64 = 559723688
-	AllowedChats       = map[int64]bool{
+	CachedUsers  map[int64]CacheUser
+	AllowedChats = map[int64]bool{
 		559723688:      true, // rasongame
 		-1001549183364: true, // Linux Food
 		-749918079:     true, // 123
@@ -25,111 +35,53 @@ var (
 /whoami - отправляет id юзера
 /pop - отправляет самые использумые слова (только в чатах)
 /stat - отправляет круговую диаграмму по теме кто больше нафлудил (только в чатах)
+Важное замечание: 24 часа это значит 24 часа. Значения в статистике это и значат
 `)
 )
 
 // 1 Day = 86400 sec
 func init() {
 	Handlers = make(map[string]Handler)
-}
-func printStatToChat(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
-	ChatID := message.Chat.ID
-	logFile, err := os.ReadFile(fmt.Sprintf("%d.log", ChatID))
-	cmdArgs := message.CommandArguments()
-	fromTime := time.Now().AddDate(0, 0, -1)
-	fromTimeText := "последние 24 часа"
-	if err != nil {
-		bot.Send(tgbotapi.NewMessage(message.Chat.ID, err.Error()))
-		return
-	}
-	if cmdArgs != "" {
-		args := strings.Split(cmdArgs, " ")
-		switch args[0] {
-		case "month":
-			fromTime = time.Now().AddDate(0, 0, -30)
-			fromTimeText = "последний месяц"
-		case "week":
-			fromTime = time.Now().AddDate(0, 0, -7)
-			fromTimeText = "последнюю неделю"
-		case "day":
-			fromTime = time.Now().AddDate(0, 0, -1)
-			fromTimeText = "последние 24 часа"
-		}
-	}
-	users := CalcUserMessages(logFile, fromTime)
-	fileName := fmt.Sprintf("%d-activeStat.png", message.Chat.ID)
-	RenderActiveUsers(users, fmt.Sprintf(fileName), int(math.Min(15, float64(len(users)))), fromTimeText)
-	photo := tgbotapi.FilePath(fileName)
-	secondMsg := tgbotapi.NewPhoto(message.Chat.ID, photo)
-	_, err = bot.Send(secondMsg)
-	if err != nil {
-		fmt.Errorf(err.Error())
-	}
-
-}
-func printPopularWords(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
-	ChatID := message.Chat.ID
-	logFile, err := os.ReadFile(fmt.Sprintf("%d.log", ChatID))
-	fromTime := time.Now().AddDate(0, 0, -1)
-	fromTimeText := "последние 24 часа"
-
-	if err != nil {
-		bot.Send(tgbotapi.NewMessage(message.Chat.ID, err.Error()))
-		return
-	}
-	cmdArgs := message.CommandArguments()
-	if cmdArgs != "" {
-		args := strings.Split(cmdArgs, " ")
-		switch args[0] {
-		case "month":
-			fromTime = time.Now().AddDate(0, 0, -30)
-			fromTimeText = "последний месяц"
-		case "week":
-			fromTime = time.Now().AddDate(0, 0, -7)
-			fromTimeText = "последнюю неделю"
-		case "day":
-			fromTime = time.Now().AddDate(0, 0, -1)
-			fromTimeText = "последние 24 часа"
-		}
-	}
-
-	wordsFreq := CalcPopularWords(logFile, fromTime)
-	msg := tgbotapi.NewMessage(message.Chat.ID, fmt.Sprintf("10 самых популярных слов за %s\n", fromTimeText))
-	smallestNumber := int(math.Min(10, float64(len(wordsFreq))))
-	for i, v := range wordsFreq[:smallestNumber] {
-		msg.Text = msg.Text + fmt.Sprintf("%d| %s: %d\n", i, v.word, v.freq)
-	}
-	bot.Send(msg)
+	CachedUsers = make(map[int64]CacheUser)
 }
 
-func testCmd(b *tgbotapi.BotAPI, m *tgbotapi.Message) {
-	_, err := b.Send(tgbotapi.NewMessage(m.Chat.ID, "hello world"))
-	if err != nil {
-		fmt.Println(err.Error())
+func InitBot() *tgbotapi.BotAPI {
+	token, ok := os.LookupEnv("rtoken")
+	if !ok {
+		fmt.Fprintf(os.Stderr, "Error: env variable \"rtoken\" is not set")
+		os.Exit(1)
 	}
-}
-func idCmd(b *tgbotapi.BotAPI, m *tgbotapi.Message) {
-	_, err := b.Send(tgbotapi.NewMessage(m.Chat.ID, strconv.FormatInt(m.From.ID, 10)))
-	if err != nil {
-		fmt.Println(err.Error())
-	}
-}
 
-func helpCmd(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
-	bot.Send(tgbotapi.NewMessage(message.Chat.ID, helpText))
-}
-
-func main() {
-	token, err := os.ReadFile("token")
-	if err != nil {
-		panic(err.Error())
-	}
-	bot, err := tgbotapi.NewBotAPI(string(token))
+	bot, err := tgbotapi.NewBotAPI(token)
+	bot.Debug = true
 	if err != nil {
 		log.Panic(err)
 	}
+	AddHandler("astat", adminPrintStatToChat, IsAdminFilter)
+	AddHandler("stat", printStatToChat, ChatOnly)
+	AddHandler("test", testCmd, FalseFilter)
+	AddHandler("whoami", idCmd, TrueFilter)
+	AddHandler("pop", printPopularWords, ChatOnly)
+	AddHandler("health", adminSendBotHealth, IsAdminFilter)
+	AddHandler("help", func(api *tgbotapi.BotAPI, message *tgbotapi.Message) {
+		msg := tgbotapi.NewMessage(message.Chat.ID, helpText)
+		bot.Send(msg)
 
-	bot.Debug = true
+	}, TrueFilter)
+
+	return bot
+}
+
+func main() {
+	bot := InitBot()
+	var err error
+	DB, err = gorm.Open(sqlite.Open("bot.db"), &gorm.Config{})
+	if err != nil {
+		log.Panic(err)
+		os.Exit(1)
+	}
+	DB.AutoMigrate(&Chat{}, &User{})
+	LoadCache(DB)
 	for i, value := range AllowedChats {
 		log.Printf("AllowedChat %d: %t", i, value)
 	}
@@ -137,12 +89,7 @@ func main() {
 
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
-	AddHandler("astat", adminPrintStatToChat, SuperuserFilter)
-	AddHandler("stat", printStatToChat, ChatOnly)
-	AddHandler("test", testCmd, FalseFilter)
-	AddHandler("whoami", idCmd, TrueFilter)
-	AddHandler("pop", printPopularWords, ChatOnly)
-	AddHandler("help", helpCmd, TrueFilter)
+
 	updates := bot.GetUpdatesChan(u)
 
 	for update := range updates {
@@ -150,14 +97,43 @@ func main() {
 			if update.Message.IsCommand() {
 				if handle, ok := Handlers[update.Message.Command()]; ok {
 					if ok && handle.Filter(bot, update.Message) {
-						handle.Handler(bot, update.Message)
+						go handle.Handler(bot, update.Message)
 					}
 				}
 			}
+			if strings.ToLower(update.Message.Text) == "стало душно" {
+				sendOpenedWindow(bot, update.Message)
+			}
 			if AllowedChats[update.Message.Chat.ID] {
 				fmt.Println("write to log ", update.Message.Chat.ID)
+				go ProcessDB(update)
 				WriteToLog(bot, update.Message)
 			}
 		}
+	}
+
+}
+func ProcessDB(update tgbotapi.Update) {
+	var ch *Chat
+	var user *User
+	DB.Where(&Chat{Id: update.Message.Chat.ID}).Find(&ch)
+	DB.Where(&User{Id: update.Message.From.ID}).Find(&user)
+	if ch.Id == 0 {
+		fmt.Println("Add to DB Chat ID ", update.Message.Chat.ID)
+		DB.Create(&Chat{
+			Id:    update.Message.Chat.ID,
+			Type:  update.Message.Chat.Type,
+			Title: update.Message.Chat.Title,
+		})
+	}
+	if user.Id == 0 {
+		fmt.Println("Add to DB User ID ", update.Message.From.ID)
+		DB.Create(&User{
+			Id:           update.Message.From.ID,
+			FirstName:    update.Message.From.FirstName,
+			LastName:     update.Message.From.LastName,
+			Username:     update.Message.From.UserName,
+			LanguageCode: update.Message.From.LanguageCode,
+		})
 	}
 }

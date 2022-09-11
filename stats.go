@@ -47,7 +47,7 @@ func CalcUserMessages(log []byte, from time.Time) []SomePlaceholder { // map[int
 		if unm.SenderChat != nil {
 			continue
 		}
-		if len(unm.Text) < 3 {
+		if len(unm.Text) <= 3 {
 			continue
 		}
 		yesterdayTime := from.Unix()
@@ -56,6 +56,10 @@ func CalcUserMessages(log []byte, from time.Time) []SomePlaceholder { // map[int
 			uzer := users[int64(unm.From.ID)]
 			if uzer.User == nil {
 				uzer.User = unm.From
+			}
+
+			if uzer.LastSeenAt.Unix() <= unm.Time().Unix() {
+				uzer.LastSeenAt = unm.Time()
 			}
 			uzer.Messages++
 			users[int64(unm.From.ID)] = uzer
@@ -73,9 +77,12 @@ func CalcUserMessages(log []byte, from time.Time) []SomePlaceholder { // map[int
 
 	return s
 }
+
 func CalcPopularWords(log []byte, fromTime time.Time) []WordFreq {
 	splitted := strings.Split(strings.ReplaceAll(string(log), "\r\n", "\n"), "\n")
-	var text string
+	var (
+		text string
+	)
 
 	{
 		for _, str := range splitted {

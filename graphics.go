@@ -18,10 +18,10 @@ func RenderActiveUsers(elements []SomePlaceholder, fileName string, limit int, f
 	finalChart := chart.PieChart{
 		Title:  fmt.Sprintln("Активные флудильщики за ", fromTimeText),
 		Values: activeStat,
-		Width:  4096,
-		Height: 4096,
+		Width:  3072,
+		Height: 2048,
+		DPI:    64.0,
 	}
-
 	f, _ := os.Create(fileName)
 	defer f.Close()
 	finalChart.Render(chart.PNG, f)

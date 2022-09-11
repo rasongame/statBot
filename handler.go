@@ -12,13 +12,7 @@ func AddHandler(command string, handler HandlerFunc, filter FilterFunc) (Handler
 	Handlers[command] = h
 	return h, true
 }
-func SuperuserFilter(b *tgbotapi.BotAPI, m *tgbotapi.Message) bool {
-	if m.From.ID == Superuser {
-		return true
-	} else {
-		return false
-	}
-}
+
 func TrueFilter(b *tgbotapi.BotAPI, m *tgbotapi.Message) bool {
 	return true
 }
@@ -27,4 +21,19 @@ func FalseFilter(b *tgbotapi.BotAPI, m *tgbotapi.Message) bool {
 }
 func ChatOnly(b *tgbotapi.BotAPI, m *tgbotapi.Message) bool {
 	return m.Chat.IsGroup() || m.Chat.IsSuperGroup()
+}
+
+func IsAdminFilter(bot *tgbotapi.BotAPI, message *tgbotapi.Message) bool {
+	cfg := tgbotapi.GetChatMemberConfig{
+		ChatConfigWithUser: tgbotapi.ChatConfigWithUser{
+			ChatID: LinFloodID,
+			UserID: message.From.ID,
+		},
+	}
+	res, _ := bot.GetChatMember(cfg)
+	isAdmin := res.CanDeleteMessages
+	if isAdmin || message.From.ID == Superuser {
+		return true
+	}
+	return false
 }
