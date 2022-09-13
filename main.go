@@ -57,8 +57,19 @@ func InitBot() *tgbotapi.BotAPI {
 	if err != nil {
 		log.Panic(err)
 	}
-	AddHandler("astat", adminPrintStatToChat, IsAdminFilter)
-	AddHandler("stat", printStatToChat, ChatOnly)
+	statsCmd := tgbotapi.BotCommand{
+		Command:     "stats",
+		Description: "Стата по количеству сообщений от юзеров (/stats day/week/month)",
+	}
+	popCmd := tgbotapi.BotCommand{
+		Command:     "pop",
+		Description: "Стата по популярным словам (day/week/month)",
+	}
+
+	cmds := tgbotapi.NewSetMyCommands(statsCmd, popCmd)
+	bot.Send(cmds)
+	AddHandler("astats", adminPrintStatToChat, IsAdminFilter)
+	AddHandler("stats", printStatToChat, ChatOnly)
 	AddHandler("test", testCmd, FalseFilter)
 	AddHandler("whoami", idCmd, TrueFilter)
 	AddHandler("pop", printPopularWords, ChatOnly)

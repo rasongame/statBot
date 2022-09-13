@@ -52,15 +52,17 @@ func printStatToChat(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
 		}
 	}
 	users := CalcUserMessages(logFile, fromTime)
-	for _, v := range users {
-		UpdateCache(v, DB)
-	}
+	go func() {
+		for _, v := range users {
+			UpdateCache(v, DB)
+		}
+	}()
 	fileName := fmt.Sprintf("%d-activeStat.png", message.Chat.ID)
 	RenderActiveUsers(users, fmt.Sprintf(fileName), int(math.Min(15, float64(len(users)))), fromTimeText)
 	photo := tgbotapi.FilePath(fileName)
-	secondMsg := tgbotapi.NewPhoto(message.Chat.ID, photo)
-	secondMsg.Caption = fmt.Sprintf("Написано сообщений за %s", fromTimeText)
-	_, err = bot.Send(secondMsg)
+	msg := tgbotapi.NewPhoto(message.Chat.ID, photo)
+	msg.Caption = fmt.Sprintf("Написано сообщений за %s", fromTimeText)
+	_, err = bot.Send(msg)
 	if err != nil {
 		fmt.Errorf(err.Error())
 	}
