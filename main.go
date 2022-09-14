@@ -65,8 +65,12 @@ func InitBot() *tgbotapi.BotAPI {
 		Command:     "pop",
 		Description: "Стата по популярным словам (day/week/month)",
 	}
+	decodeCmd := tgbotapi.BotCommand{
+		Command:     "decode",
+		Description: "\"ghbdtn vbh\" => \" привет мир\" ",
+	}
 
-	cmds := tgbotapi.NewSetMyCommands(statsCmd, popCmd)
+	cmds := tgbotapi.NewSetMyCommands(statsCmd, popCmd, decodeCmd)
 	bot.Send(cmds)
 	AddHandler("decode", sendDecodedMessage, TrueFilter)
 	AddHandler("astats", adminPrintStatToChat, IsAdminFilter)
