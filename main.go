@@ -68,6 +68,7 @@ func InitBot() *tgbotapi.BotAPI {
 
 	cmds := tgbotapi.NewSetMyCommands(statsCmd, popCmd)
 	bot.Send(cmds)
+	AddHandler("decode", sendDecodedMessage, TrueFilter)
 	AddHandler("astats", adminPrintStatToChat, IsAdminFilter)
 	AddHandler("stats", printStatToChat, ChatOnly)
 	AddHandler("test", testCmd, FalseFilter)
