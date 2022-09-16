@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"time"
 )
 
 type CacheUser struct {
@@ -22,6 +23,7 @@ const (
 )
 
 var (
+	BotStarted   = time.Now()
 	DB           *gorm.DB
 	Handlers     map[string]Handler
 	CachedUsers  map[int64]CacheUser
@@ -69,9 +71,14 @@ func InitBot() *tgbotapi.BotAPI {
 		Command:     "decode",
 		Description: "\"ghbdtn vbh\" => \" привет мир\" ",
 	}
+	decode64Cmd := tgbotapi.BotCommand{
+		Command:     "decodebase64",
+		Description: "Base64 => \" привет мир\" ",
+	}
 
-	cmds := tgbotapi.NewSetMyCommands(statsCmd, popCmd, decodeCmd)
+	cmds := tgbotapi.NewSetMyCommands(statsCmd, popCmd, decodeCmd, decode64Cmd)
 	bot.Send(cmds)
+	AddHandler("decodebase64", sendDecodedBase64Message, TrueFilter)
 	AddHandler("decode", sendDecodedMessage, TrueFilter)
 	AddHandler("astats", adminPrintStatToChat, IsAdminFilter)
 	AddHandler("stats", printStatToChat, ChatOnly)
