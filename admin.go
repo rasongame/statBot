@@ -24,7 +24,8 @@ Alloc: %v MiB
 Total Alloc: %v MiB
 Sys: %v MiB
 GC Calls: %v
-
+NumCPU: %d
+"
 `
 	uptime := time.Now().Sub(BotStarted)
 	info := GetAboutInfo()
@@ -32,7 +33,7 @@ GC Calls: %v
 	runtime.ReadMemStats(&mem)
 	msg.Text = fmt.Sprintf(msg.Text, uptime, info.Hostname,
 		info.GoVersion, info.Platform, info.Architecture,
-		bToMb(mem.Alloc), bToMb(mem.TotalAlloc), bToMb(mem.Sys), mem.NumGC)
+		bToMb(mem.Alloc), bToMb(mem.TotalAlloc), bToMb(mem.Sys), mem.NumGC, runtime.NumCPU())
 	runtime.GC()
 	bot.Send(msg)
 }
@@ -64,7 +65,7 @@ func adminPrintStatToChat(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
 	users := CalcUserMessages(logFile, fromTime)
 
 	for _, v := range users {
-		UpdateCache(v, DB)
+		UpdateCache(&v, DB)
 	}
 
 	fileName := fmt.Sprintf("%d-activeStat.png", message.Chat.ID)

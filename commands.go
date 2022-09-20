@@ -54,7 +54,7 @@ func printStatToChat(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
 	users := CalcUserMessages(logFile, fromTime)
 	go func() {
 		for _, v := range users {
-			UpdateCache(v, DB)
+			UpdateCache(&v, DB)
 		}
 	}()
 	fileName := fmt.Sprintf("%d-activeStat.png", message.Chat.ID)
@@ -64,7 +64,7 @@ func printStatToChat(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
 	msg.Caption = fmt.Sprintf("Написано сообщений за %s", fromTimeText)
 	_, err = bot.Send(msg)
 	if err != nil {
-		fmt.Errorf(err.Error())
+		fmt.Println(err.Error())
 	}
 
 }
@@ -76,6 +76,7 @@ func printPopularWords(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
 
 	if err != nil {
 		bot.Send(tgbotapi.NewMessage(message.Chat.ID, err.Error()))
+
 		return
 	}
 	cmdArgs := message.CommandArguments()

@@ -32,6 +32,7 @@ var (
 		-1001549183364: true, // Linux Food
 		-749918079:     true, // 123
 		-1001373811109: true,
+		-1001558727831: true, // 123
 	}
 	helpText = strings.TrimSpace(`
 /whoami - отправляет id юзера
@@ -46,19 +47,7 @@ func init() {
 	Handlers = make(map[string]Handler)
 	CachedUsers = make(map[int64]CacheUser)
 }
-
-func InitBot() *tgbotapi.BotAPI {
-	token, ok := os.LookupEnv("rtoken")
-	if !ok {
-		fmt.Fprintf(os.Stderr, "Error: env variable \"rtoken\" is not set")
-		os.Exit(1)
-	}
-
-	bot, err := tgbotapi.NewBotAPI(token)
-	bot.Debug = true
-	if err != nil {
-		log.Panic(err)
-	}
+func InitBotCommands(bot *tgbotapi.BotAPI) {
 	statsCmd := tgbotapi.BotCommand{
 		Command:     "stats",
 		Description: "Стата по количеству сообщений от юзеров (/stats day/week/month)",
@@ -78,32 +67,58 @@ func InitBot() *tgbotapi.BotAPI {
 
 	cmds := tgbotapi.NewSetMyCommands(statsCmd, popCmd, decodeCmd, decode64Cmd)
 	bot.Send(cmds)
-	AddHandler("decodebase64", sendDecodedBase64Message, TrueFilter)
+}
+func InitBotHandlers(bot *tgbotapi.BotAPI) {
+	//
 	AddHandler("decode", sendDecodedMessage, TrueFilter)
-	AddHandler("astats", adminPrintStatToChat, IsAdminFilter)
-	AddHandler("stats", printStatToChat, ChatOnly)
-	AddHandler("test", testCmd, FalseFilter)
+	AddHandler("decodebase64", sendDecodedBase64Message, TrueFilter)
 	AddHandler("whoami", idCmd, TrueFilter)
-	AddHandler("pop", printPopularWords, ChatOnly)
+	AddHandler("help", helpCmd, TrueFilter)
+	//
 	AddHandler("health", adminSendBotHealth, IsAdminFilter)
-	AddHandler("help", func(api *tgbotapi.BotAPI, message *tgbotapi.Message) {
-		msg := tgbotapi.NewMessage(message.Chat.ID, helpText)
-		bot.Send(msg)
+	AddHandler("astats", adminPrintStatToChat, IsAdminFilter)
+	//
+	AddHandler("stats", printStatToChat, ChatOnly)
+	AddHandler("pop", printPopularWords, ChatOnly)
+	//
+	AddHandler("test", testCmd, FalseFilter)
 
-	}, TrueFilter)
+}
+func InitBot() *tgbotapi.BotAPI {
+	token, ok := os.LookupEnv("rtoken")
+	if !ok {
+		fmt.Fprintf(os.Stderr, "Error: env variable \"rtoken\" is not set")
+		os.Exit(1)
+	}
+	debugMode := false
+	debugModeEnv, ok := os.LookupEnv("rdebug")
+	if ok && debugModeEnv == "1" {
+		debugMode = true
+	}
+
+	bot, err := tgbotapi.NewBotAPI(token)
+	bot.Debug = debugMode
+	if err != nil {
+		log.Panic(err)
+	}
+
+	InitBotHandlers(bot)
+	InitBotCommands(bot)
 
 	return bot
 }
-
+func panicErr(err error) {
+	if err != nil {
+		log.Panic(err)
+	}
+}
 func main() {
 	bot := InitBot()
 	var err error
 	DB, err = gorm.Open(sqlite.Open("bot.db"), &gorm.Config{})
-	if err != nil {
-		log.Panic(err)
-		os.Exit(1)
-	}
-	DB.AutoMigrate(&Chat{}, &User{})
+	panicErr(err)
+	err = DB.AutoMigrate(&Chat{}, &User{})
+	panicErr(err)
 	LoadCache(DB)
 	for i, value := range AllowedChats {
 		log.Printf("AllowedChat %d: %t", i, value)
@@ -120,7 +135,11 @@ func main() {
 			if update.Message.IsCommand() {
 				if handle, ok := Handlers[update.Message.Command()]; ok {
 					if ok && handle.Filter(bot, update.Message) {
-						go handle.Handler(bot, update.Message)
+						go func() {
+							timeStart := time.Now()
+							handle.Handler(bot, update.Message)
+							fmt.Println(time.Now().Sub(timeStart))
+						}()
 					}
 				}
 			}
@@ -130,7 +149,24 @@ func main() {
 			if AllowedChats[update.Message.Chat.ID] {
 				fmt.Println("write to log ", update.Message.Chat.ID)
 				go ProcessDB(update)
+				go func() {
+					if chatLogIsLoaded[update.Message.Chat.ID] {
+						userCache := chatLogMessageCache[update.Message.Chat.ID]
+						userCacheFinal := userCache[update.Message.From.ID]
+						if userCacheFinal == nil {
+							userCacheFinal = &SomePlaceholder{
+								User:       update.Message.From,
+								Messages:   0,
+								LastSeenAt: time.Now(),
+							}
+						}
+						userCacheFinal.Messages++
+
+					}
+
+				}()
 				WriteToLog(bot, update.Message)
+
 			}
 		}
 	}

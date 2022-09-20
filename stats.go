@@ -13,11 +13,15 @@ import (
 )
 
 var (
-	blacklistWords  []string
-	whitelistRegExp = regexp.MustCompile("[a-zA-Zа-яА-Я0-9']+")
+	blacklistWords      []string
+	whitelistRegExp     = regexp.MustCompile("[a-zA-Zа-яА-Я0-9']+")
+	chatLogIsLoaded     map[int64]bool
+	chatLogMessageCache map[int64]map[int64]*SomePlaceholder
 )
 
 func init() {
+	chatLogMessageCache = map[int64]map[int64]*SomePlaceholder{}
+	chatLogIsLoaded = map[int64]bool{}
 	fmt.Println("func init() stats.go start")
 	words, err := os.ReadFile("blacklistWords.txt")
 	if err != nil {
@@ -34,15 +38,24 @@ func IsNumeric(s string) bool {
 // Key ID; Value = SomePlaceholder
 func CalcUserMessages(log []byte, from time.Time) []SomePlaceholder { // map[int64]SomePlaceholder
 	splitted := strings.Split(strings.ReplaceAll(string(log), "\r\n", "\n"), "\n")
-	users := make(map[int64]SomePlaceholder)
+	users := map[int64]*SomePlaceholder{}
+	var chatId int64
 	for k, str := range splitted {
 		var unm tgbotapi.Message
-		//str := strings.TrimSuffix(str, "\n")
-		//fmt.Println(i, str)
+
 		err := json.Unmarshal([]byte(str), &unm)
+
 		if err != nil {
 			fmt.Println(k, err)
 			continue
+		}
+		if k == 0 {
+			chatId = unm.Chat.ID
+		}
+		if chatLogIsLoaded[unm.Chat.ID] {
+			chatId = unm.Chat.ID
+			break
+			// Выходим отсюда, потому что стата по этому чату уже была запрошена и активно обновляется в памяти
 		}
 		if unm.SenderChat != nil {
 			continue
@@ -52,8 +65,10 @@ func CalcUserMessages(log []byte, from time.Time) []SomePlaceholder { // map[int
 		}
 		yesterdayTime := from.Unix()
 		if int64(unm.Date) >= yesterdayTime {
-			//fmt.Println(users[int64(unm.From.ID)])
 			uzer := users[int64(unm.From.ID)]
+			if uzer == nil {
+				uzer = &SomePlaceholder{Messages: 0, LastSeenAt: time.Time{}}
+			}
 			if uzer.User == nil {
 				uzer.User = unm.From
 			}
@@ -68,9 +83,34 @@ func CalcUserMessages(log []byte, from time.Time) []SomePlaceholder { // map[int
 	}
 	s := make([]SomePlaceholder, 0, len(users))
 	// append all map keys-value pairs to the slice
-	for _, v := range users {
-		s = append(s, v)
+	if chatLogMessageCache[chatId] == nil {
+		chatLogMessageCache[chatId] = map[int64]*SomePlaceholder{}
 	}
+	// Если кэш пуст юзаем этот цикл
+	if !chatLogIsLoaded[chatId] {
+		fmt.Println("Empty Cache")
+		for k, v := range users {
+			fmt.Println("for _, v := range users {", k, v.User.ID)
+			if chatLogMessageCache[chatId][v.User.ID] == nil {
+				chatLogMessageCache[chatId][v.User.ID] = v
+			}
+			// Проверка на то что чат загружен в память бота
+			// Если нет, то чат участники чата загружаются память
+			// Это моя задумка что-то вроде кэша,
+			// чтобы не пересчитывать весь файл (т.к он может быть огромным, сука) и не парсить все жсоны
+			// @TODO: добавить в функцию которая пишет в файл код который добавляет в кэш автоматически сообщения
+			s = append(s, *v)
+			if !chatLogIsLoaded[chatId] {
+				chatLogIsLoaded[chatId] = true
+			}
+		}
+	} else {
+		for _, v := range chatLogMessageCache[chatId] {
+			s = append(s, *v)
+		}
+	}
+	// Если в кэше юзеры загружены
+
 	sort.SliceStable(s, func(i, j int) bool {
 		return s[i].Messages > s[j].Messages
 	})

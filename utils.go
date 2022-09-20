@@ -20,7 +20,7 @@ func LoadCache(db *gorm.DB) {
 	}
 }
 
-func UpdateCache(placeholder SomePlaceholder, db *gorm.DB) {
+func UpdateCache(placeholder *SomePlaceholder, db *gorm.DB) {
 	if CachedUsers[placeholder.User.ID].LifeTime <= time.Now().Unix() {
 		u := CacheUser{
 			User: User{
