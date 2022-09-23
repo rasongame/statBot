@@ -6,7 +6,6 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"gorm.io/gorm"
 	"log"
-	"os"
 	"strings"
 	"time"
 )
@@ -34,7 +33,8 @@ var (
 		-1001373811109: true,
 		-1001558727831: true, // 123
 	}
-	helpText = strings.TrimSpace(`
+	BlacklistedUsers = map[int64]bool{5449020876: true}
+	helpText         = strings.TrimSpace(`
 /whoami - отправляет id юзера
 /pop - отправляет самые использумые слова (только в чатах)
 /stat - отправляет круговую диаграмму по теме кто больше нафлудил (только в чатах)
@@ -47,71 +47,7 @@ func init() {
 	Handlers = make(map[string]Handler)
 	CachedUsers = make(map[int64]CacheUser)
 }
-func InitBotCommands(bot *tgbotapi.BotAPI) {
-	statsCmd := tgbotapi.BotCommand{
-		Command:     "stats",
-		Description: "Стата по количеству сообщений от юзеров (/stats day/week/month)",
-	}
-	popCmd := tgbotapi.BotCommand{
-		Command:     "pop",
-		Description: "Стата по популярным словам (day/week/month)",
-	}
-	decodeCmd := tgbotapi.BotCommand{
-		Command:     "decode",
-		Description: "\"ghbdtn vbh\" => \" привет мир\" ",
-	}
-	decode64Cmd := tgbotapi.BotCommand{
-		Command:     "decodebase64",
-		Description: "Base64 => \" привет мир\" ",
-	}
 
-	cmds := tgbotapi.NewSetMyCommands(statsCmd, popCmd, decodeCmd, decode64Cmd)
-	bot.Send(cmds)
-}
-func InitBotHandlers(bot *tgbotapi.BotAPI) {
-	//
-	AddHandler("decode", sendDecodedMessage, TrueFilter)
-	AddHandler("decodebase64", sendDecodedBase64Message, TrueFilter)
-	AddHandler("whoami", idCmd, TrueFilter)
-	AddHandler("help", helpCmd, TrueFilter)
-	//
-	AddHandler("health", adminSendBotHealth, IsAdminFilter)
-	AddHandler("astats", adminPrintStatToChat, IsAdminFilter)
-	//
-	AddHandler("stats", printStatToChat, ChatOnly)
-	AddHandler("pop", printPopularWords, ChatOnly)
-	//
-	AddHandler("test", testCmd, FalseFilter)
-
-}
-func InitBot() *tgbotapi.BotAPI {
-	token, ok := os.LookupEnv("rtoken")
-	if !ok {
-		fmt.Fprintf(os.Stderr, "Error: env variable \"rtoken\" is not set")
-		os.Exit(1)
-	}
-	debugMode := false
-	debugModeEnv, ok := os.LookupEnv("rdebug")
-	if ok && debugModeEnv == "1" {
-		debugMode = true
-	}
-
-	bot, err := tgbotapi.NewBotAPI(token)
-	bot.Debug = debugMode
-	if err != nil {
-		log.Panic(err)
-	}
-
-	InitBotHandlers(bot)
-	InitBotCommands(bot)
-
-	return bot
-}
-func panicErr(err error) {
-	if err != nil {
-		log.Panic(err)
-	}
-}
 func main() {
 	bot := InitBot()
 	var err error
@@ -133,10 +69,14 @@ func main() {
 	for update := range updates {
 		if update.Message != nil {
 			if update.Message.IsCommand() {
+				if BlacklistedUsers[update.Message.From.ID] {
+					continue
+				}
 				if handle, ok := Handlers[update.Message.Command()]; ok {
 					if ok && handle.Filter(bot, update.Message) {
 						go func() {
 							timeStart := time.Now()
+
 							handle.Handler(bot, update.Message)
 							fmt.Println(time.Now().Sub(timeStart))
 						}()

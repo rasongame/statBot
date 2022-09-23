@@ -2,6 +2,7 @@ package main
 
 import (
 	"gorm.io/gorm"
+	"log"
 	"time"
 )
 
@@ -37,5 +38,10 @@ func UpdateCache(placeholder *SomePlaceholder, db *gorm.DB) {
 
 		db.Save(&u.User)
 
+	}
+}
+func panicErr(err error) {
+	if err != nil {
+		log.Panic(err)
 	}
 }
