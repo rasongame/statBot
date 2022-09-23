@@ -33,6 +33,7 @@ func printStatToChat(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
 	cmdArgs := message.CommandArguments()
 	fromTime := time.Now().AddDate(0, 0, -1)
 	fromTimeText := "последние 24 часа"
+	caseNumber := 0
 	if err != nil {
 		bot.Send(tgbotapi.NewMessage(message.Chat.ID, err.Error()))
 		return
@@ -43,15 +44,28 @@ func printStatToChat(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
 		case "month":
 			fromTime = time.Now().AddDate(0, -1, 0)
 			fromTimeText = "последний месяц"
+			caseNumber = 1
+
 		case "week":
 			fromTime = time.Now().AddDate(0, 0, -7)
 			fromTimeText = "последнюю неделю"
+			caseNumber = 2
+
 		case "day":
 			fromTime = time.Now().AddDate(0, 0, -1)
 			fromTimeText = "последние 24 часа"
+			caseNumber = 3
+
 		}
 	}
-	users := CalcUserMessages(logFile, fromTime)
+	var users []SomePlaceholder
+	if caseNumber >= 1 {
+		users = CalcUserMessagesLegacy(logFile, fromTime)
+
+	} else {
+		users = CalcUserMessages(logFile, fromTime)
+
+	}
 	go func() {
 		for _, v := range users {
 			UpdateCache(&v, DB)

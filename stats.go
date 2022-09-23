@@ -36,6 +36,7 @@ func IsNumeric(s string) bool {
 }
 
 // Key ID; Value = SomePlaceholder
+
 func CalcUserMessages(log []byte, from time.Time) []SomePlaceholder { // map[int64]SomePlaceholder
 	splitted := strings.Split(strings.ReplaceAll(string(log), "\r\n", "\n"), "\n")
 	users := map[int64]*SomePlaceholder{}
@@ -117,7 +118,48 @@ func CalcUserMessages(log []byte, from time.Time) []SomePlaceholder { // map[int
 
 	return s
 }
+func CalcUserMessagesLegacy(log []byte, from time.Time) []SomePlaceholder { // map[int64]SomePlaceholder
+	splitted := strings.Split(strings.ReplaceAll(string(log), "\r\n", "\n"), "\n")
+	users := make(map[int64]SomePlaceholder)
+	for k, str := range splitted {
+		var unm tgbotapi.Message
+		//str := strings.TrimSuffix(str, "\n")
+		//fmt.Println(i, str)
+		err := json.Unmarshal([]byte(str), &unm)
+		if err != nil {
+			fmt.Println(k, err)
+			continue
+		}
+		if unm.SenderChat != nil || len(unm.Text) <= 3 {
+			continue
+		}
+		yesterdayTime := from.Unix()
+		if int64(unm.Date) >= yesterdayTime {
+			//fmt.Println(users[int64(unm.From.ID)])
+			uzer := users[int64(unm.From.ID)]
+			if uzer.User == nil {
+				uzer.User = unm.From
+			}
 
+			if uzer.LastSeenAt.Unix() <= unm.Time().Unix() {
+				uzer.LastSeenAt = unm.Time()
+			}
+			uzer.Messages++
+			users[int64(unm.From.ID)] = uzer
+
+		}
+	}
+	s := make([]SomePlaceholder, 0, len(users))
+	// append all map keys-value pairs to the slice
+	for _, v := range users {
+		s = append(s, v)
+	}
+	sort.SliceStable(s, func(i, j int) bool {
+		return s[i].Messages > s[j].Messages
+	})
+
+	return s
+}
 func CalcPopularWords(log []byte, fromTime time.Time) []WordFreq {
 	splitted := strings.Split(strings.ReplaceAll(string(log), "\r\n", "\n"), "\n")
 	var (
