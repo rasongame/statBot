@@ -39,6 +39,20 @@ func init() {
 	CachedUsers = make(map[int64]utils.CacheUser)
 }
 
+func strContains(s []string, e string) bool {
+	for _, a := range s {
+		if a == e {
+			return true
+		}
+	}
+	return false
+}
+
+func isExplicitAllowedCommand(value string) bool {
+	value = strings.ToLower(value[1:])
+	return strContains([]string{"stats", "astats"}, value)
+}
+
 func rightCommandExtractor(m *tgbotapi.Message, botNickName string) string {
 	if !m.IsCommand() {
 		return ""
@@ -46,15 +60,19 @@ func rightCommandExtractor(m *tgbotapi.Message, botNickName string) string {
 
 	// Explicit bot call in public chats
 	if m.Chat.Type == "supergroup" {
-		splitted_command := strings.Split(m.Text, "@")
-		if len(splitted_command) > 1 && strings.ToLower(splitted_command[1]) == strings.ToLower(botNickName) {
-			return splitted_command[0][1:]
+		splittedCommand := strings.Split(m.Text, "@")
+		if len(splittedCommand) > 1 && strings.ToLower(splittedCommand[1]) == strings.ToLower(botNickName) {
+			return splittedCommand[0][1:]
 		}
-
-		return ""
+	} else {
+		return m.Command()
 	}
 
-	return m.Command()
+	if isExplicitAllowedCommand(m.Text) {
+		return m.Command()
+	}
+
+	return ""
 }
 
 func main() {
