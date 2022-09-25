@@ -1,4 +1,4 @@
-package main
+package utils
 
 import (
 	"fmt"
@@ -15,12 +15,12 @@ type SomePlaceholder struct {
 	LastSeenAt time.Time
 }
 type WordFreq struct {
-	word string
-	freq int
+	Word string
+	Freq int
 }
 
 func (p WordFreq) String() string {
-	return fmt.Sprintf("%s %d", p.word, p.freq)
+	return fmt.Sprintf("%s %d", p.Word, p.Freq)
 }
 
 type HandlerFunc func(api *tgbotapi.BotAPI, message *tgbotapi.Message)
@@ -63,4 +63,8 @@ type AboutBot struct {
 	GoVersion    string
 	Platform     string
 	Architecture string
+}
+type CacheUser struct {
+	User     User
+	LifeTime int64
 }

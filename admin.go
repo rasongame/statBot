@@ -5,41 +5,14 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"math"
 	"os"
-	"runtime"
+	"statBot/utils"
 	"strings"
 	"time"
 )
 
-func adminSendBotHealth(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
-	var mem runtime.MemStats
-
-	text :=
-		`
-BotUptime: %s
-Hostname: %s
-Go Version: %s
-Platform: %s,
-Architecture: %s, 
-Alloc: %v MiB
-Total Alloc: %v MiB
-Sys: %v MiB
-GC Calls: %v
-NumCPU: %d
-"
-`
-	uptime := time.Now().Sub(BotStarted)
-	info := GetAboutInfo()
-	msg := tgbotapi.NewMessage(message.Chat.ID, text)
-	runtime.ReadMemStats(&mem)
-	msg.Text = fmt.Sprintf(msg.Text, uptime, info.Hostname,
-		info.GoVersion, info.Platform, info.Architecture,
-		bToMb(mem.Alloc), bToMb(mem.TotalAlloc), bToMb(mem.Sys), mem.NumGC, runtime.NumCPU())
-	runtime.GC()
-	bot.Send(msg)
-}
 func adminPrintStatToChat(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
 
-	logFile, err := os.ReadFile(fmt.Sprintf("%d.log", LinFloodID))
+	logFile, err := os.ReadFile(fmt.Sprintf("%d.log", utils.LinFloodID))
 	cmdArgs := message.CommandArguments()
 	fromTime := time.Now().AddDate(0, 0, -1)
 	fromTimeText := "последние 24 часа"
@@ -67,7 +40,7 @@ func adminPrintStatToChat(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
 			caseNumber = 3
 		}
 	}
-	var users []SomePlaceholder
+	var users []utils.SomePlaceholder
 	// CalcUserMessagesLegacy нужен чтобы избежать кэширования ненужной бяки
 	if caseNumber >= 1 {
 		users = CalcUserMessagesLegacy(logFile, fromTime)
@@ -76,7 +49,7 @@ func adminPrintStatToChat(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
 	}
 
 	for _, v := range users {
-		UpdateCache(&v, DB)
+		utils.UpdateCache(&v, DB, CachedUsers)
 	}
 
 	fileName := fmt.Sprintf("%d-activeStat.png", message.Chat.ID)

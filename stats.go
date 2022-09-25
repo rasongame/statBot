@@ -7,6 +7,7 @@ import (
 	"os"
 	"regexp"
 	"sort"
+	"statBot/utils"
 	"strconv"
 	"strings"
 	"time"
@@ -16,13 +17,13 @@ var (
 	blacklistWords      []string
 	whitelistRegExp     = regexp.MustCompile("[a-zA-Zа-яА-Я0-9']+")
 	chatLogIsLoaded     map[int64]bool
-	chatLogMessageCache map[int64]map[int64]*SomePlaceholder
+	chatLogMessageCache map[int64]map[int64]*utils.SomePlaceholder
 	// Мапа состоит из ключей ChatID и значений в виде мапы с ключами UserID и значения SomePlaceholder (user struct)
 	//
 )
 
 func init() {
-	chatLogMessageCache = map[int64]map[int64]*SomePlaceholder{}
+	chatLogMessageCache = map[int64]map[int64]*utils.SomePlaceholder{}
 	chatLogIsLoaded = map[int64]bool{}
 	fmt.Println("func init() stats.go start")
 	words, err := os.ReadFile("blacklistWords.txt")
@@ -39,9 +40,9 @@ func IsNumeric(s string) bool {
 
 // Key ID; Value = SomePlaceholder
 
-func CalcUserMessages(log []byte, from time.Time) []SomePlaceholder { // map[int64]SomePlaceholder
+func CalcUserMessages(log []byte, from time.Time) []utils.SomePlaceholder { // map[int64]SomePlaceholder
 	splitted := strings.Split(strings.ReplaceAll(string(log), "\r\n", "\n"), "\n")
-	users := map[int64]*SomePlaceholder{}
+	users := map[int64]*utils.SomePlaceholder{}
 	var chatId int64
 	for k, str := range splitted {
 		var unm tgbotapi.Message
@@ -70,7 +71,7 @@ func CalcUserMessages(log []byte, from time.Time) []SomePlaceholder { // map[int
 		if int64(unm.Date) >= yesterdayTime {
 			uzer := users[int64(unm.From.ID)]
 			if uzer == nil {
-				uzer = &SomePlaceholder{Messages: 0, LastSeenAt: time.Time{}}
+				uzer = &utils.SomePlaceholder{Messages: 0, LastSeenAt: time.Time{}}
 			}
 			if uzer.User == nil {
 				uzer.User = unm.From
@@ -84,10 +85,10 @@ func CalcUserMessages(log []byte, from time.Time) []SomePlaceholder { // map[int
 
 		}
 	}
-	s := make([]SomePlaceholder, 0, len(users))
+	s := make([]utils.SomePlaceholder, 0, len(users))
 	// append all map keys-value pairs to the slice
 	if chatLogMessageCache[chatId] == nil {
-		chatLogMessageCache[chatId] = map[int64]*SomePlaceholder{}
+		chatLogMessageCache[chatId] = map[int64]*utils.SomePlaceholder{}
 	}
 	// Если кэш пуст юзаем этот цикл
 	if !chatLogIsLoaded[chatId] {
@@ -120,9 +121,9 @@ func CalcUserMessages(log []byte, from time.Time) []SomePlaceholder { // map[int
 
 	return s
 }
-func CalcUserMessagesLegacy(log []byte, from time.Time) []SomePlaceholder { // map[int64]SomePlaceholder
+func CalcUserMessagesLegacy(log []byte, from time.Time) []utils.SomePlaceholder { // map[int64]SomePlaceholder
 	splitted := strings.Split(strings.ReplaceAll(string(log), "\r\n", "\n"), "\n")
-	users := make(map[int64]SomePlaceholder)
+	users := make(map[int64]utils.SomePlaceholder)
 	for k, str := range splitted {
 		var unm tgbotapi.Message
 		//str := strings.TrimSuffix(str, "\n")
@@ -151,7 +152,7 @@ func CalcUserMessagesLegacy(log []byte, from time.Time) []SomePlaceholder { // m
 
 		}
 	}
-	s := make([]SomePlaceholder, 0, len(users))
+	s := make([]utils.SomePlaceholder, 0, len(users))
 	// append all map keys-value pairs to the slice
 	for _, v := range users {
 		s = append(s, v)
@@ -162,7 +163,7 @@ func CalcUserMessagesLegacy(log []byte, from time.Time) []SomePlaceholder { // m
 
 	return s
 }
-func CalcPopularWords(log []byte, fromTime time.Time) []WordFreq {
+func CalcPopularWords(log []byte, fromTime time.Time) []utils.WordFreq {
 	splitted := strings.Split(strings.ReplaceAll(string(log), "\r\n", "\n"), "\n")
 	var (
 		text string
@@ -191,13 +192,13 @@ func CalcPopularWords(log []byte, fromTime time.Time) []WordFreq {
 	for _, match := range matches {
 		words[match]++
 	}
-	var wordFreqs []WordFreq
+	var wordFreqs []utils.WordFreq
 	for k, v := range words {
-		wordFreqs = append(wordFreqs, WordFreq{k, v})
+		wordFreqs = append(wordFreqs, utils.WordFreq{k, v})
 
 	}
 	sort.Slice(wordFreqs, func(i, j int) bool {
-		return wordFreqs[i].freq > wordFreqs[j].freq
+		return wordFreqs[i].Freq > wordFreqs[j].Freq
 	})
 	return wordFreqs
 }

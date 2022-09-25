@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"github.com/wcharczuk/go-chart"
 	"os"
+	"statBot/utils"
 )
 
-func RenderActiveUsers(elements []SomePlaceholder, fileName string, limit int, fromTimeText string) {
+func RenderActiveUsers(elements []utils.SomePlaceholder, fileName string, limit int, fromTimeText string) {
 	var activeStat []chart.Value
 	for _, v := range elements[:limit] {
 		activeStat = append(activeStat, chart.Value{

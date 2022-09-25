@@ -5,6 +5,8 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"log"
 	"os"
+	"statBot/filters"
+	"statBot/handlers"
 )
 
 func InitBotCommands(bot *tgbotapi.BotAPI) {
@@ -30,18 +32,18 @@ func InitBotCommands(bot *tgbotapi.BotAPI) {
 }
 func InitBotHandlers(bot *tgbotapi.BotAPI) {
 	//
-	AddHandler("decode", sendDecodedMessage, TrueFilter)
-	AddHandler("decodebase64", sendDecodedBase64Message, TrueFilter)
-	AddHandler("whoami", idCmd, TrueFilter)
-	AddHandler("help", helpCmd, TrueFilter)
+	AddHandler("decode", handlers.SendDecodedMessage, filters.TrueFilter)
+	AddHandler("decodebase64", handlers.SendDecodedBase64Message, filters.TrueFilter)
+	AddHandler("whoami", handlers.Id, filters.TrueFilter)
+	//AddHandler("help", nil, filters.TrueFilter)
 	//
-	AddHandler("health", adminSendBotHealth, IsAdminFilter)
-	AddHandler("astats", adminPrintStatToChat, IsAdminFilter)
+	AddHandler("health", handlers.SendBotHealth, filters.IsAdminFilter)
+	AddHandler("astats", adminPrintStatToChat, filters.IsAdminFilter)
 	//
-	AddHandler("stats", printStatToChat, ChatOnly)
-	AddHandler("pop", printPopularWords, ChatOnly)
+	AddHandler("stats", printStatToChat, filters.ChatOnly)
+	AddHandler("pop", printPopularWords, filters.ChatOnly)
 	//
-	AddHandler("test", testCmd, FalseFilter)
+	AddHandler("test", handlers.Test, filters.FalseFilter)
 
 }
 func InitBot() *tgbotapi.BotAPI {

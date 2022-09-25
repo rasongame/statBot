@@ -5,27 +5,10 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"math"
 	"os"
-	"strconv"
+	"statBot/utils"
 	"strings"
 	"time"
 )
-
-func testCmd(b *tgbotapi.BotAPI, m *tgbotapi.Message) {
-	_, err := b.Send(tgbotapi.NewMessage(m.Chat.ID, "hello world"))
-	if err != nil {
-		fmt.Println(err.Error())
-	}
-}
-func idCmd(b *tgbotapi.BotAPI, m *tgbotapi.Message) {
-	_, err := b.Send(tgbotapi.NewMessage(m.Chat.ID, strconv.FormatInt(m.From.ID, 10)))
-	if err != nil {
-		fmt.Println(err.Error())
-	}
-}
-
-func helpCmd(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
-	bot.Send(tgbotapi.NewMessage(message.Chat.ID, helpText))
-}
 
 func printStatToChat(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
 	ChatID := message.Chat.ID
@@ -58,7 +41,7 @@ func printStatToChat(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
 
 		}
 	}
-	var users []SomePlaceholder
+	var users []utils.SomePlaceholder
 	if caseNumber >= 1 {
 		users = CalcUserMessagesLegacy(logFile, fromTime)
 
@@ -68,7 +51,7 @@ func printStatToChat(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
 	}
 	go func() {
 		for _, v := range users {
-			UpdateCache(&v, DB)
+			utils.UpdateCache(&v, DB, CachedUsers)
 		}
 	}()
 	fileName := fmt.Sprintf("%d-activeStat.png", message.Chat.ID)
@@ -114,7 +97,7 @@ func printPopularWords(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
 	smallestNumber := int(math.Min(10, float64(len(wordsFreq))))
 
 	for i, v := range wordsFreq[:smallestNumber] {
-		msg.Text = msg.Text + fmt.Sprintf("%d| %s: %d\n", i, v.word, v.freq)
+		msg.Text = msg.Text + fmt.Sprintf("%d| %s: %d\n", i, v.Word, v.Freq)
 	}
 	bot.Send(msg)
 }

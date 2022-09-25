@@ -1,4 +1,4 @@
-package main
+package utils
 
 import (
 	"gorm.io/gorm"
@@ -6,11 +6,11 @@ import (
 	"time"
 )
 
-func bToMb(b uint64) uint64 {
+func BToMb(b uint64) uint64 {
 	return b / 1024 / 1024
 }
 
-func LoadCache(db *gorm.DB) {
+func LoadCache(db *gorm.DB, CachedUsers map[int64]CacheUser) {
 	var users []User
 	db.Find(&users)
 	for _, user := range users {
@@ -21,7 +21,7 @@ func LoadCache(db *gorm.DB) {
 	}
 }
 
-func UpdateCache(placeholder *SomePlaceholder, db *gorm.DB) {
+func UpdateCache(placeholder *SomePlaceholder, db *gorm.DB, CachedUsers map[int64]CacheUser) {
 	if CachedUsers[placeholder.User.ID].LifeTime <= time.Now().Unix() {
 		u := CacheUser{
 			User: User{
@@ -40,7 +40,7 @@ func UpdateCache(placeholder *SomePlaceholder, db *gorm.DB) {
 
 	}
 }
-func panicErr(err error) {
+func PanicErr(err error) {
 	if err != nil {
 		log.Panic(err)
 	}

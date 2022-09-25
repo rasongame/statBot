@@ -6,26 +6,17 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"gorm.io/gorm"
 	"log"
+	"statBot/handlers"
+	"statBot/utils"
 	"strings"
 	"time"
-)
-
-type CacheUser struct {
-	User     User
-	LifeTime int64
-}
-
-const (
-	LinFloodID int64 = -1001373811109
-	ReportChat int64 = 559723688
-	Superuser  int64 = 559723688
 )
 
 var (
 	BotStarted   = time.Now()
 	DB           *gorm.DB
-	Handlers     map[string]Handler
-	CachedUsers  map[int64]CacheUser
+	Handlers     map[string]utils.Handler
+	CachedUsers  map[int64]utils.CacheUser
 	AllowedChats = map[int64]bool{
 		559723688:      true, // rasongame
 		-1001549183364: true, // Linux Food
@@ -44,18 +35,18 @@ var (
 
 // 1 Day = 86400 sec
 func init() {
-	Handlers = make(map[string]Handler)
-	CachedUsers = make(map[int64]CacheUser)
+	Handlers = make(map[string]utils.Handler)
+	CachedUsers = make(map[int64]utils.CacheUser)
 }
 
 func main() {
 	bot := InitBot()
 	var err error
 	DB, err = gorm.Open(sqlite.Open("bot.db"), &gorm.Config{})
-	panicErr(err)
-	err = DB.AutoMigrate(&Chat{}, &User{})
-	panicErr(err)
-	LoadCache(DB)
+	utils.PanicErr(err)
+	err = DB.AutoMigrate(&utils.Chat{}, &utils.User{})
+	utils.PanicErr(err)
+	utils.LoadCache(DB, CachedUsers)
 	for i, value := range AllowedChats {
 		log.Printf("AllowedChat %d: %t", i, value)
 	}
@@ -78,7 +69,7 @@ func main() {
 			}
 
 			if strings.ToLower(update.Message.Text) == "стало душно" {
-				sendOpenedWindow(bot, update.Message)
+				handlers.SendOpenedWindow(bot, update.Message)
 			}
 			if AllowedChats[update.Message.Chat.ID] {
 				fmt.Println("write to log ", update.Message.Chat.ID)
@@ -88,7 +79,7 @@ func main() {
 						userCache := chatLogMessageCache[update.Message.Chat.ID]
 						userCacheFinal := userCache[update.Message.From.ID]
 						if userCacheFinal == nil {
-							userCacheFinal = &SomePlaceholder{
+							userCacheFinal = &utils.SomePlaceholder{
 								User:       update.Message.From,
 								Messages:   0,
 								LastSeenAt: time.Now(),
@@ -118,13 +109,13 @@ func CallHandler(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
 	}
 }
 func ProcessDB(update tgbotapi.Update) {
-	var ch *Chat
-	var user *User
-	DB.Where(&Chat{Id: update.Message.Chat.ID}).Find(&ch)
-	DB.Where(&User{Id: update.Message.From.ID}).Find(&user)
+	var ch *utils.Chat
+	var user *utils.User
+	DB.Where(&utils.Chat{Id: update.Message.Chat.ID}).Find(&ch)
+	DB.Where(&utils.User{Id: update.Message.From.ID}).Find(&user)
 	if ch.Id == 0 {
 		fmt.Println("Add to DB Chat ID ", update.Message.Chat.ID)
-		DB.Create(&Chat{
+		DB.Create(&utils.Chat{
 			Id:    update.Message.Chat.ID,
 			Type:  update.Message.Chat.Type,
 			Title: update.Message.Chat.Title,
@@ -132,7 +123,7 @@ func ProcessDB(update tgbotapi.Update) {
 	}
 	if user.Id == 0 {
 		fmt.Println("Add to DB User ID ", update.Message.From.ID)
-		DB.Create(&User{
+		DB.Create(&utils.User{
 			Id:           update.Message.From.ID,
 			FirstName:    update.Message.From.FirstName,
 			LastName:     update.Message.From.LastName,

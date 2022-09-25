@@ -5,6 +5,7 @@ import (
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"os"
+	"statBot/utils"
 	"strings"
 )
 
@@ -32,7 +33,7 @@ func WriteToLog(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
 	f, err := os.OpenFile(fmt.Sprintf("%d.log", message.Chat.ID), os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0755)
 
 	if err != nil {
-		msg := tgbotapi.NewMessage(ReportChat, err.Error())
+		msg := tgbotapi.NewMessage(utils.ReportChat, err.Error())
 		_, botErr := bot.Send(msg)
 		if botErr != nil {
 			fmt.Errorf("%s", botErr.Error())
