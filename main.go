@@ -13,10 +13,9 @@ import (
 )
 
 var (
-	BotStarted   = time.Now()
-	DB           *gorm.DB
-	Handlers     map[string]utils.Handler
-	CachedUsers  map[int64]utils.CacheUser
+	BotStarted = time.Now()
+	DB         *gorm.DB
+
 	AllowedChats = map[int64]bool{
 		559723688:      true, // rasongame
 		-1001549183364: true, // Linux Food
@@ -35,8 +34,8 @@ var (
 
 // 1 Day = 86400 sec
 func init() {
-	Handlers = make(map[string]utils.Handler)
-	CachedUsers = make(map[int64]utils.CacheUser)
+	utils.Handlers = make(map[string]utils.Handler)
+	utils.CachedUsers = make(map[int64]utils.CacheUser)
 }
 
 func strContains(s []string, e string) bool {
@@ -50,7 +49,7 @@ func strContains(s []string, e string) bool {
 
 func isExplicitAllowedCommand(value string) bool {
 	value = strings.ToLower(value[1:])
-	return strContains([]string{"stats", "astats"}, value)
+	return strContains([]string{"stats", "astats", "health", "pop"}, value)
 }
 
 func rightCommandExtractor(m *tgbotapi.Message, botNickName string) string {
@@ -82,7 +81,7 @@ func main() {
 	utils.PanicErr(err)
 	err = DB.AutoMigrate(&utils.Chat{}, &utils.User{})
 	utils.PanicErr(err)
-	utils.LoadCache(DB, CachedUsers)
+	utils.LoadCache(DB, utils.CachedUsers)
 	for i, value := range AllowedChats {
 		log.Printf("AllowedChat %d: %t", i, value)
 	}
@@ -95,15 +94,7 @@ func main() {
 
 	for update := range updates {
 		if update.Message != nil {
-			if update.Message.IsCommand() {
-				if BlacklistedUsers[update.Message.From.ID] {
-					continue
-				}
-				//isPrivate := update.Message.Chat.IsPrivate()
-				//cmdHasSuffix := strings.HasSuffix(update.Message.CommandWithAt(), bot.Self.UserName)
-				CallHandler(bot, update)
-			}
-
+			CallHandler(bot, update)
 			if strings.ToLower(update.Message.Text) == "стало душно" {
 				handlers.SendOpenedWindow(bot, update.Message)
 			}
@@ -111,8 +102,8 @@ func main() {
 				fmt.Println("write to log ", update.Message.Chat.ID)
 				go ProcessDB(update)
 				go func() {
-					if chatLogIsLoaded[update.Message.Chat.ID] {
-						userCache := chatLogMessageCache[update.Message.Chat.ID]
+					if utils.ChatLogIsLoaded[update.Message.Chat.ID] {
+						userCache := utils.ChatLogMessageCache[update.Message.Chat.ID]
 						userCacheFinal := userCache[update.Message.From.ID]
 						if userCacheFinal == nil {
 							userCacheFinal = &utils.SomePlaceholder{
@@ -137,7 +128,7 @@ func CallHandler(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
 	if update.Message.IsCommand() {
 		handler_name := rightCommandExtractor(update.Message, bot.Self.UserName)
 
-		if handle, ok := Handlers[handler_name]; ok {
+		if handle, ok := utils.Handlers[handler_name]; ok {
 			if ok && handle.Filter(bot, update.Message) {
 				go func() {
 					timeStart := time.Now()

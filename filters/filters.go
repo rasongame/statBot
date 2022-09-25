@@ -1,7 +1,6 @@
 package filters
 
 import (
-	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"statBot/utils"
 	"time"
@@ -16,7 +15,6 @@ func init() {
 	AdminRightsCache = map[int64]map[int64]tgbotapi.ChatMember{}
 }
 func AdminRightChatUpdater(b *tgbotapi.BotAPI) {
-
 	for {
 		select {
 		case <-adminRightUpdateTicker.C:
@@ -41,7 +39,6 @@ func FalseFilter(b *tgbotapi.BotAPI, m *tgbotapi.Message) bool {
 func ChatOnly(b *tgbotapi.BotAPI, m *tgbotapi.Message) bool {
 	return m.Chat.IsGroup() || m.Chat.IsSuperGroup()
 }
-
 func IsAdminFilter(bot *tgbotapi.BotAPI, message *tgbotapi.Message) bool {
 	if AdminRightsCache[message.Chat.ID] == nil {
 		chatCfg := tgbotapi.ChatConfig{ChatID: message.Chat.ID}
@@ -52,7 +49,6 @@ func IsAdminFilter(bot *tgbotapi.BotAPI, message *tgbotapi.Message) bool {
 		for _, admin := range res {
 			AdminRightsCache[message.Chat.ID][admin.User.ID] = admin
 		}
-		fmt.Println("LIN FLOOOD", len(AdminRightsCache[utils.LinFloodID]))
 		go AdminRightChatUpdater(bot)
 	}
 	isAdmin := AdminRightsCache[message.Chat.ID][message.From.ID].CanDeleteMessages

@@ -4,8 +4,13 @@ import (
 	"encoding/base64"
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"statBot/utils"
 	"strconv"
 	"strings"
+)
+
+var (
+	alphabet = make(map[string]string, 96)
 )
 
 func Test(b *tgbotapi.BotAPI, m *tgbotapi.Message) {
@@ -21,16 +26,8 @@ func Id(b *tgbotapi.BotAPI, m *tgbotapi.Message) {
 	}
 }
 
-const (
-	windowStickerFileId = "CAACAgIAAxkBAAER_M5jHd5cpDyOcIbq3QmpHR5mnmySBgACjwADfI5YFfhv_xslSwqzKQQ"
-)
-
-var (
-	alphabet = make(map[string]string, 96)
-)
-
 func SendOpenedWindow(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
-	sticker := tgbotapi.FileID(windowStickerFileId)
+	sticker := tgbotapi.FileID(utils.WindowStickerFileId)
 	msg := tgbotapi.NewSticker(message.Chat.ID, sticker)
 	bot.Send(msg)
 }

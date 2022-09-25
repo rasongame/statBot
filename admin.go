@@ -49,7 +49,7 @@ func adminPrintStatToChat(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
 	}
 
 	for _, v := range users {
-		utils.UpdateCache(&v, DB, CachedUsers)
+		utils.UpdateCache(&v, DB, utils.CachedUsers)
 	}
 
 	fileName := fmt.Sprintf("%d-activeStat.png", message.Chat.ID)

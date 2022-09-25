@@ -14,17 +14,16 @@ import (
 )
 
 var (
-	blacklistWords      []string
-	whitelistRegExp     = regexp.MustCompile("[a-zA-Zа-яА-Я0-9']+")
-	chatLogIsLoaded     map[int64]bool
-	chatLogMessageCache map[int64]map[int64]*utils.SomePlaceholder
+	blacklistWords  []string
+	whitelistRegExp = regexp.MustCompile("[a-zA-Zа-яА-Я0-9']+")
+
 	// Мапа состоит из ключей ChatID и значений в виде мапы с ключами UserID и значения SomePlaceholder (user struct)
 	//
 )
 
 func init() {
-	chatLogMessageCache = map[int64]map[int64]*utils.SomePlaceholder{}
-	chatLogIsLoaded = map[int64]bool{}
+	utils.ChatLogMessageCache = map[int64]map[int64]*utils.SomePlaceholder{}
+	utils.ChatLogIsLoaded = map[int64]bool{}
 	fmt.Println("func init() stats.go start")
 	words, err := os.ReadFile("blacklistWords.txt")
 	if err != nil {
@@ -56,7 +55,7 @@ func CalcUserMessages(log []byte, from time.Time) []utils.SomePlaceholder { // m
 		if k == 0 {
 			chatId = unm.Chat.ID
 		}
-		if chatLogIsLoaded[unm.Chat.ID] {
+		if utils.ChatLogIsLoaded[unm.Chat.ID] {
 			chatId = unm.Chat.ID
 			break
 			// Выходим отсюда, потому что стата по этому чату уже была запрошена и активно обновляется в памяти
@@ -87,16 +86,16 @@ func CalcUserMessages(log []byte, from time.Time) []utils.SomePlaceholder { // m
 	}
 	s := make([]utils.SomePlaceholder, 0, len(users))
 	// append all map keys-value pairs to the slice
-	if chatLogMessageCache[chatId] == nil {
-		chatLogMessageCache[chatId] = map[int64]*utils.SomePlaceholder{}
+	if utils.ChatLogMessageCache[chatId] == nil {
+		utils.ChatLogMessageCache[chatId] = map[int64]*utils.SomePlaceholder{}
 	}
 	// Если кэш пуст юзаем этот цикл
-	if !chatLogIsLoaded[chatId] {
+	if !utils.ChatLogIsLoaded[chatId] {
 		fmt.Println("Empty Cache")
 		for k, v := range users {
 			fmt.Println("for _, v := range users {", k, v.User.ID)
-			if chatLogMessageCache[chatId][v.User.ID] == nil {
-				chatLogMessageCache[chatId][v.User.ID] = v
+			if utils.ChatLogMessageCache[chatId][v.User.ID] == nil {
+				utils.ChatLogMessageCache[chatId][v.User.ID] = v
 			}
 			// Проверка на то что чат загружен в память бота
 			// Если нет, то чат участники чата загружаются память
@@ -104,12 +103,12 @@ func CalcUserMessages(log []byte, from time.Time) []utils.SomePlaceholder { // m
 			// чтобы не пересчитывать весь файл (т.к он может быть огромным, сука) и не парсить все жсоны
 			// @TODO: добавить в функцию которая пишет в файл код который добавляет в кэш автоматически сообщения
 			s = append(s, *v)
-			if !chatLogIsLoaded[chatId] {
-				chatLogIsLoaded[chatId] = true
+			if !utils.ChatLogIsLoaded[chatId] {
+				utils.ChatLogIsLoaded[chatId] = true
 			}
 		}
 	} else {
-		for _, v := range chatLogMessageCache[chatId] {
+		for _, v := range utils.ChatLogMessageCache[chatId] {
 			s = append(s, *v)
 		}
 	}
