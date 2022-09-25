@@ -72,17 +72,11 @@ func main() {
 				if BlacklistedUsers[update.Message.From.ID] {
 					continue
 				}
-				if handle, ok := Handlers[update.Message.Command()]; ok {
-					if ok && handle.Filter(bot, update.Message) {
-						go func() {
-							timeStart := time.Now()
-
-							handle.Handler(bot, update.Message)
-							fmt.Println(time.Now().Sub(timeStart))
-						}()
-					}
-				}
+				//isPrivate := update.Message.Chat.IsPrivate()
+				//cmdHasSuffix := strings.HasSuffix(update.Message.CommandWithAt(), bot.Self.UserName)
+				CallHandler(bot, update)
 			}
+
 			if strings.ToLower(update.Message.Text) == "стало душно" {
 				sendOpenedWindow(bot, update.Message)
 			}
@@ -111,6 +105,17 @@ func main() {
 		}
 	}
 
+}
+func CallHandler(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
+	if handle, ok := Handlers[update.Message.Command()]; ok {
+		if ok && handle.Filter(bot, update.Message) {
+			go func() {
+				timeStart := time.Now()
+				handle.Handler(bot, update.Message)
+				fmt.Println(time.Now().Sub(timeStart))
+			}()
+		}
+	}
 }
 func ProcessDB(update tgbotapi.Update) {
 	var ch *Chat

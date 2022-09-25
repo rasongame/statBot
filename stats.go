@@ -17,6 +17,8 @@ var (
 	whitelistRegExp     = regexp.MustCompile("[a-zA-Zа-яА-Я0-9']+")
 	chatLogIsLoaded     map[int64]bool
 	chatLogMessageCache map[int64]map[int64]*SomePlaceholder
+	// Мапа состоит из ключей ChatID и значений в виде мапы с ключами UserID и значения SomePlaceholder (user struct)
+	//
 )
 
 func init() {
