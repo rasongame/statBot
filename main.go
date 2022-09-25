@@ -39,6 +39,24 @@ func init() {
 	CachedUsers = make(map[int64]utils.CacheUser)
 }
 
+func rightCommandExtractor(m *tgbotapi.Message, botNickName string) string {
+	if !m.IsCommand() {
+		return ""
+	}
+
+	// Explicit bot call in public chats
+	if m.Chat.Type == "supergroup" {
+		splitted_command := strings.Split(m.Text, "@")
+		if len(splitted_command) > 1 && strings.ToLower(splitted_command[1]) == strings.ToLower(botNickName) {
+			return splitted_command[0][1:]
+		}
+
+		return ""
+	}
+
+	return m.Command()
+}
+
 func main() {
 	bot := InitBot()
 	var err error
@@ -95,19 +113,24 @@ func main() {
 			}
 		}
 	}
-
 }
+
 func CallHandler(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
-	if handle, ok := Handlers[update.Message.Command()]; ok {
-		if ok && handle.Filter(bot, update.Message) {
-			go func() {
-				timeStart := time.Now()
-				handle.Handler(bot, update.Message)
-				fmt.Println(time.Now().Sub(timeStart))
-			}()
+	if update.Message.IsCommand() {
+		handler_name := rightCommandExtractor(update.Message, bot.Self.UserName)
+
+		if handle, ok := Handlers[handler_name]; ok {
+			if ok && handle.Filter(bot, update.Message) {
+				go func() {
+					timeStart := time.Now()
+					handle.Handler(bot, update.Message)
+					fmt.Println(time.Now().Sub(timeStart))
+				}()
+			}
 		}
 	}
 }
+
 func ProcessDB(update tgbotapi.Update) {
 	var ch *utils.Chat
 	var user *utils.User
