@@ -47,12 +47,14 @@ func strContains(s []string, e string) bool {
 	return false
 }
 
-func isExplicitAllowedCommand(value string) bool {
-	value = strings.ToLower(value[1:])
-	return strContains([]string{"stats", "astats", "health", "pop"}, value)
+func isExplicitAllowedCommand(commandNormalized string) bool {
+	commandWithoutParams := strings.Split(commandNormalized, " ")[0]
+	commandNormalized = strings.ToLower(commandWithoutParams)[1:]
+	return strContains([]string{"stats", "astats", "health", "pop"}, commandNormalized)
 }
 
 func rightCommandExtractor(m *tgbotapi.Message, botNickName string) string {
+	normalizedBotNickName := strings.ToLower(botNickName)
 	if !m.IsCommand() {
 		return ""
 	}
@@ -60,8 +62,12 @@ func rightCommandExtractor(m *tgbotapi.Message, botNickName string) string {
 	// Explicit bot call in public chats
 	if m.Chat.Type == "supergroup" {
 		splittedCommand := strings.Split(m.Text, "@")
-		if len(splittedCommand) > 1 && strings.ToLower(splittedCommand[1]) == strings.ToLower(botNickName) {
-			return splittedCommand[0][1:]
+
+		if len(splittedCommand) > 1 {
+			possibleBotNickName := strings.ToLower(strings.Split(splittedCommand[1], " ")[0])
+			if possibleBotNickName == normalizedBotNickName {
+				return m.Command()
+			}
 		}
 	} else {
 		return m.Command()
