@@ -92,16 +92,12 @@ func CalcUserMessages(log []byte, from time.Time) []utils.SomePlaceholder { // m
 	// Если кэш пуст юзаем этот цикл
 	if !utils.ChatLogIsLoaded[chatId] {
 		fmt.Println("Empty Cache")
-		for k, v := range users {
-			fmt.Println("for _, v := range users {", k, v.User.ID)
+		fmt.Println("Filling with", len(users))
+		for _, v := range users {
 			if utils.ChatLogMessageCache[chatId][v.User.ID] == nil {
 				utils.ChatLogMessageCache[chatId][v.User.ID] = v
 			}
-			// Проверка на то что чат загружен в память бота
-			// Если нет, то чат участники чата загружаются память
-			// Это моя задумка что-то вроде кэша,
-			// чтобы не пересчитывать весь файл (т.к он может быть огромным, сука) и не парсить все жсоны
-			// @TODO: добавить в функцию которая пишет в файл код который добавляет в кэш автоматически сообщения
+
 			s = append(s, *v)
 			if !utils.ChatLogIsLoaded[chatId] {
 				utils.ChatLogIsLoaded[chatId] = true
