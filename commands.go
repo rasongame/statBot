@@ -66,12 +66,12 @@ func printStatToChat(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
 	}
 	go func() {
 		timer := time.NewTimer(5 * time.Second)
-		delete := tgbotapi.DeleteMessageConfig{
+		deleteConfig := tgbotapi.DeleteMessageConfig{
 			ChatID:    message.Chat.ID,
 			MessageID: sended.MessageID,
 		}
 		<-timer.C
-		bot.Send(delete)
+		bot.Send(deleteConfig)
 
 	}()
 
