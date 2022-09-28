@@ -59,10 +59,21 @@ func printStatToChat(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
 	photo := tgbotapi.FilePath(fileName)
 	msg := tgbotapi.NewPhoto(message.Chat.ID, photo)
 	msg.Caption = fmt.Sprintf("Написано сообщений за %s", fromTimeText)
-	_, err = bot.Send(msg)
+	msg.ReplyToMessageID = message.MessageID
+	sended, err := bot.Send(msg)
 	if err != nil {
 		fmt.Println(err.Error())
 	}
+	go func() {
+		timer := time.NewTimer(5 * time.Second)
+		delete := tgbotapi.DeleteMessageConfig{
+			ChatID:    message.Chat.ID,
+			MessageID: sended.MessageID,
+		}
+		<-timer.C
+		bot.Send(delete)
+
+	}()
 
 }
 func printPopularWords(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
@@ -93,11 +104,12 @@ func printPopularWords(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
 	}
 
 	wordsFreq := CalcPopularWords(logFile, fromTime)
-	msg := tgbotapi.NewMessage(message.Chat.ID, fmt.Sprintf("10 самых популярных слов за %s\n", fromTimeText))
 	smallestNumber := int(math.Min(10, float64(len(wordsFreq))))
+	msg := tgbotapi.NewMessage(message.Chat.ID, fmt.Sprintf("%d самых популярных слов за %s\n", smallestNumber, fromTimeText))
 
 	for i, v := range wordsFreq[:smallestNumber] {
 		msg.Text = msg.Text + fmt.Sprintf("%d| %s: %d\n", i, v.Word, v.Freq)
 	}
+	msg.ReplyToMessageID = message.MessageID
 	bot.Send(msg)
 }

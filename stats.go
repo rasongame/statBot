@@ -189,7 +189,7 @@ func CalcPopularWords(log []byte, fromTime time.Time) []utils.WordFreq {
 	}
 	var wordFreqs []utils.WordFreq
 	for k, v := range words {
-		wordFreqs = append(wordFreqs, utils.WordFreq{k, v})
+		wordFreqs = append(wordFreqs, utils.WordFreq{Word: k, Freq: v})
 
 	}
 	sort.Slice(wordFreqs, func(i, j int) bool {

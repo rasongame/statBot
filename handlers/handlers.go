@@ -41,6 +41,7 @@ func SendDecodedMessage(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
 	}
 	fmt.Println(decodedText)
 	msg := tgbotapi.NewMessage(message.Chat.ID, decodedText)
+	msg.ReplyToMessageID = message.MessageID
 	bot.Send(msg)
 }
 func SendDecodedBase64Message(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
@@ -52,6 +53,7 @@ func SendDecodedBase64Message(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
 		decoded = []byte(err.Error())
 	}
 	msg := tgbotapi.NewMessage(message.Chat.ID, string(decoded))
+	msg.ReplyToMessageID = message.MessageID
 	bot.Send(msg)
 }
 func init() {

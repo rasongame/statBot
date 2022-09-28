@@ -55,5 +55,6 @@ for this: %t
 		utils.ChatLogIsLoaded[message.Chat.ID],
 	)
 	runtime.GC()
+	msg.ReplyToMessageID = message.MessageID
 	bot.Send(msg)
 }

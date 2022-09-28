@@ -1,6 +1,7 @@
 package utils
 
 import (
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"gorm.io/gorm"
 	"log"
 	"time"
@@ -43,5 +44,22 @@ func UpdateCache(placeholder *SomePlaceholder, db *gorm.DB, CachedUsers map[int6
 func PanicErr(err error) {
 	if err != nil {
 		log.Panic(err)
+	}
+}
+
+func AdminRightChatUpdater(b *tgbotapi.BotAPI) {
+	for {
+		select {
+		case <-AdminRightUpdateTicker.C:
+			{
+				for chatId, _ := range AdminRightsCache {
+					chatCfg := tgbotapi.ChatConfig{ChatID: chatId}
+					res, _ := b.GetChatAdministrators(tgbotapi.ChatAdministratorsConfig{chatCfg})
+					for _, admin := range res {
+						AdminRightsCache[chatId][admin.User.ID] = admin
+					}
+				}
+			}
+		}
 	}
 }
