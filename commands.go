@@ -65,7 +65,7 @@ func printStatToChat(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
 		fmt.Println(err.Error())
 	}
 	go func() {
-		timer := time.NewTimer(5 * time.Second)
+		timer := time.NewTimer(30 * time.Second)
 		deleteConfig := tgbotapi.DeleteMessageConfig{
 			ChatID:    message.Chat.ID,
 			MessageID: sended.MessageID,
