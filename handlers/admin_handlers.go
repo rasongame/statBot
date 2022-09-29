@@ -25,6 +25,7 @@ func SendBotHealth(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
 
 	text :=
 		`
+Updates Processed: %d
 BotUptime: %s 
 Hostname: %s
 Go Version: %s
@@ -48,7 +49,7 @@ for this: %t
 	info := utils.GetAboutInfo()
 	msg := tgbotapi.NewMessage(message.Chat.ID, text)
 	runtime.ReadMemStats(&mem)
-	msg.Text = fmt.Sprintf(msg.Text, uptime, info.Hostname,
+	msg.Text = fmt.Sprintf(msg.Text, utils.UpdatesProcessed, uptime, info.Hostname,
 		info.GoVersion, info.Platform, info.Architecture,
 		utils.BToMb(mem.Alloc),
 		utils.BToMb(mem.TotalAlloc),

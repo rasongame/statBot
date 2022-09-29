@@ -6,6 +6,7 @@ import (
 )
 
 var (
+	UpdatesProcessed       int64
 	Handlers               map[string]Handler
 	CachedUsers            map[int64]CacheUser
 	ChatLogIsLoaded        map[int64]bool

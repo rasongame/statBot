@@ -100,6 +100,7 @@ func main() {
 
 	for update := range updates {
 		if update.Message != nil {
+			utils.UpdatesProcessed++
 			CallHandler(bot, update)
 			if strings.ToLower(update.Message.Text) == "стало душно" {
 				handlers.SendOpenedWindow(bot, update.Message)
