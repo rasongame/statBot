@@ -132,9 +132,9 @@ func main() {
 
 func CallHandler(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
 	if update.Message.IsCommand() {
-		handler_name := rightCommandExtractor(update.Message, bot.Self.UserName)
+		handlerName := rightCommandExtractor(update.Message, bot.Self.UserName)
 
-		if handle, ok := utils.Handlers[handler_name]; ok {
+		if handle, ok := utils.Handlers[handlerName]; ok {
 			if ok && handle.Filter(bot, update.Message) {
 				go func() {
 					timeStart := time.Now()

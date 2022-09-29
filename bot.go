@@ -39,6 +39,7 @@ func InitBotHandlers(bot *tgbotapi.BotAPI) {
 	//
 	AddHandler("health", handlers.SendBotHealth, filters.IsAdminFilter)
 	AddHandler("astats", adminPrintStatToChat, filters.IsAdminFilter)
+	AddHandler("adminlist", handlers.SendAdminList, filters.IsAdminFilter)
 	//
 	AddHandler("stats", printStatToChat, filters.ChatOnly)
 	AddHandler("pop", printPopularWords, filters.ChatOnly)

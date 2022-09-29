@@ -14,10 +14,10 @@ func FalseFilter(b *tgbotapi.BotAPI, m *tgbotapi.Message) bool {
 func ChatOnly(b *tgbotapi.BotAPI, m *tgbotapi.Message) bool {
 	return m.Chat.IsGroup() || m.Chat.IsSuperGroup()
 }
-func IsAdminFilter(bot *tgbotapi.BotAPI, message *tgbotapi.Message) bool {
+func GenerateAdminCacheIfNotExists(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
 	if utils.AdminRightsCache[message.Chat.ID] == nil {
 		chatCfg := tgbotapi.ChatConfig{ChatID: message.Chat.ID}
-		res, _ := bot.GetChatAdministrators(tgbotapi.ChatAdministratorsConfig{chatCfg})
+		res, _ := bot.GetChatAdministrators(tgbotapi.ChatAdministratorsConfig{ChatConfig: chatCfg})
 		if utils.AdminRightsCache[message.Chat.ID] == nil {
 			utils.AdminRightsCache[message.Chat.ID] = map[int64]tgbotapi.ChatMember{}
 		}
@@ -26,9 +26,13 @@ func IsAdminFilter(bot *tgbotapi.BotAPI, message *tgbotapi.Message) bool {
 		}
 		go utils.AdminRightChatUpdater(bot)
 	}
-	isAdmin := utils.AdminRightsCache[message.Chat.ID][message.From.ID].CanDeleteMessages
+}
 
-	if isAdmin || message.From.ID == utils.Superuser {
+func IsAdminFilter(bot *tgbotapi.BotAPI, message *tgbotapi.Message) bool {
+	GenerateAdminCacheIfNotExists(bot, message)
+	isAdmin := utils.AdminRightsCache[message.Chat.ID][message.From.ID].IsAdministrator()
+	isOwner := utils.AdminRightsCache[message.Chat.ID][message.From.ID].IsCreator()
+	if isAdmin || isOwner || message.From.ID == utils.Superuser {
 		return true
 	}
 	return false

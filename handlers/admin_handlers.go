@@ -12,6 +12,14 @@ var (
 	BotStarted = time.Now()
 )
 
+func SendAdminList(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
+	msg := "Admin list\n"
+	for _, value := range utils.AdminRightsCache[message.Chat.ID] {
+		msg = fmt.Sprintln(msg, value.User.ID, value.User.FirstName, value.User.LastName, value.User.UserName, value.CanDeleteMessages)
+	}
+	_, err := bot.Send(tgbotapi.NewMessage(message.Chat.ID, msg))
+	utils.PanicErr(err)
+}
 func SendBotHealth(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
 	var mem runtime.MemStats
 
