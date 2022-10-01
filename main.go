@@ -38,48 +38,6 @@ func init() {
 	utils.CachedUsers = make(map[int64]utils.CacheUser)
 }
 
-func strContains(s []string, e string) bool {
-	for _, a := range s {
-		if a == e {
-			return true
-		}
-	}
-	return false
-}
-
-func isExplicitAllowedCommand(commandNormalized string) bool {
-	commandWithoutParams := strings.Split(commandNormalized, " ")[0]
-	commandNormalized = strings.ToLower(commandWithoutParams)[1:]
-	return strContains([]string{"stats", "astats", "health", "pop"}, commandNormalized)
-}
-
-func rightCommandExtractor(m *tgbotapi.Message, botNickName string) string {
-	normalizedBotNickName := strings.ToLower(botNickName)
-	if !m.IsCommand() {
-		return ""
-	}
-
-	// Explicit bot call in public chats
-	if m.Chat.Type == "supergroup" {
-		splittedCommand := strings.Split(m.Text, "@")
-
-		if len(splittedCommand) > 1 {
-			possibleBotNickName := strings.ToLower(strings.Split(splittedCommand[1], " ")[0])
-			if possibleBotNickName == normalizedBotNickName {
-				return m.Command()
-			}
-		}
-	} else {
-		return m.Command()
-	}
-
-	if isExplicitAllowedCommand(m.Text) {
-		return m.Command()
-	}
-
-	return ""
-}
-
 func main() {
 	bot := InitBot()
 	var err error
@@ -133,7 +91,7 @@ func main() {
 
 func CallHandler(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
 	if update.Message.IsCommand() {
-		handlerName := rightCommandExtractor(update.Message, bot.Self.UserName)
+		handlerName := utils.RightCommandExtractor(update.Message, bot.Self.UserName)
 
 		if handle, ok := utils.Handlers[handlerName]; ok {
 			if ok && handle.Filter(bot, update.Message) {

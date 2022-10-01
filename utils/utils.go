@@ -4,6 +4,7 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"gorm.io/gorm"
 	"log"
+	"strings"
 	"time"
 )
 
@@ -62,4 +63,46 @@ func AdminRightChatUpdater(b *tgbotapi.BotAPI) {
 			}
 		}
 	}
+}
+
+func strContains(s []string, e string) bool {
+	for _, a := range s {
+		if a == e {
+			return true
+		}
+	}
+	return false
+}
+
+func isExplicitAllowedCommand(commandNormalized string) bool {
+	commandWithoutParams := strings.Split(commandNormalized, " ")[0]
+	commandNormalized = strings.ToLower(commandWithoutParams)[1:]
+	return strContains([]string{"stats", "astats", "health", "pop"}, commandNormalized)
+}
+
+func RightCommandExtractor(m *tgbotapi.Message, botNickName string) string {
+	normalizedBotNickName := strings.ToLower(botNickName)
+	if !m.IsCommand() {
+		return ""
+	}
+
+	// Explicit bot call in public chats
+	if m.Chat.Type == "supergroup" {
+		splittedCommand := strings.Split(m.Text, "@")
+
+		if len(splittedCommand) > 1 {
+			possibleBotNickName := strings.ToLower(strings.Split(splittedCommand[1], " ")[0])
+			if possibleBotNickName == normalizedBotNickName {
+				return m.Command()
+			}
+		}
+	} else {
+		return m.Command()
+	}
+
+	if isExplicitAllowedCommand(m.Text) {
+		return m.Command()
+	}
+
+	return ""
 }
