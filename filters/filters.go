@@ -5,13 +5,13 @@ import (
 	"statBot/utils"
 )
 
-func TrueFilter(b *tgbotapi.BotAPI, m *tgbotapi.Message) bool {
+func TrueFilter(_ *tgbotapi.BotAPI, _ *tgbotapi.Message) bool {
 	return true
 }
-func FalseFilter(b *tgbotapi.BotAPI, m *tgbotapi.Message) bool {
+func FalseFilter(_ *tgbotapi.BotAPI, _ *tgbotapi.Message) bool {
 	return false
 }
-func ChatOnly(b *tgbotapi.BotAPI, m *tgbotapi.Message) bool {
+func ChatOnly(_ *tgbotapi.BotAPI, m *tgbotapi.Message) bool {
 	return m.Chat.IsGroup() || m.Chat.IsSuperGroup()
 }
 func GenerateAdminCacheIfNotExists(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {

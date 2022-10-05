@@ -13,6 +13,7 @@ var (
 	ChatLogMessageCache    map[int64]map[int64]*SomePlaceholder
 	AdminRightsCache       map[int64]map[int64]tgbotapi.ChatMember
 	AdminRightUpdateTicker = time.NewTicker(15 * time.Minute)
+	CachedUsersLifeTime    = int64(10) // in seconds
 )
 
 func init() {

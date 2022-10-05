@@ -5,6 +5,8 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"runtime"
 	"statBot/utils"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -13,9 +15,36 @@ var (
 )
 
 func SendAdminList(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
+	var args []string
 	msg := "Admin list\n"
-	for _, value := range utils.AdminRightsCache[message.Chat.ID] {
-		msg = fmt.Sprintln(msg, value.User.ID, value.User.FirstName, value.User.LastName, value.User.UserName, value.CanDeleteMessages)
+	fmt.Println(message.CommandArguments())
+	var chatID = message.Chat.ID
+	if message.CommandArguments() != "" {
+		fmt.Println(len(strings.Split(message.CommandArguments(), " ")))
+		args = strings.Split(message.CommandArguments(), " ")
+
+	}
+	if len(args) >= 1 {
+		customChatID, err := strconv.ParseInt(args[0], 10, 64)
+		if err == nil {
+			chatID = customChatID
+		} else {
+			utils.PanicErr(err)
+		}
+	}
+
+	msg = fmt.Sprintln("ChatID:", chatID, "\n", msg)
+	for _, value := range utils.AdminRightsCache[chatID] {
+
+		isCreator := ""
+		if value.IsCreator() {
+			isCreator = "+"
+		} else {
+			isCreator = "-"
+		}
+
+		msg = fmt.Sprintln(msg, value.User.ID, value.User.FirstName, value.User.LastName,
+			value.User.UserName, value.CanDeleteMessages, isCreator)
 	}
 	_, err := bot.Send(tgbotapi.NewMessage(message.Chat.ID, msg))
 	utils.PanicErr(err)
@@ -65,5 +94,9 @@ for this: %t
 	)
 	runtime.GC()
 	msg.ReplyToMessageID = message.MessageID
-	bot.Send(msg)
+	_, err := bot.Send(msg)
+
+	if err != nil {
+		fmt.Println(err)
+	}
 }

@@ -13,8 +13,7 @@ import (
 )
 
 var (
-	BotStarted = time.Now()
-	DB         *gorm.DB
+	DB *gorm.DB
 
 	AllowedChats = map[int64]bool{
 		559723688:      true, // rasongame

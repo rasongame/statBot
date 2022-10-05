@@ -18,13 +18,14 @@ func LoadCache(db *gorm.DB, CachedUsers map[int64]CacheUser) {
 	for _, user := range users {
 		CachedUsers[user.Id] = CacheUser{
 			User:     user,
-			LifeTime: time.Now().Unix() + 3600,
+			LifeTime: time.Now().Unix() + CachedUsersLifeTime,
 		}
 	}
 }
 
-func UpdateCache(placeholder *SomePlaceholder, db *gorm.DB, CachedUsers map[int64]CacheUser) {
-	if CachedUsers[placeholder.User.ID].LifeTime <= time.Now().Unix() {
+func UpdateCache(placeholder *SomePlaceholder, db *gorm.DB, CachedUsers *map[int64]CacheUser) {
+	user := (*CachedUsers)[placeholder.User.ID]
+	if user.LifeTime <= time.Now().Unix() {
 		u := CacheUser{
 			User: User{
 				Id:           placeholder.User.ID,
@@ -34,10 +35,9 @@ func UpdateCache(placeholder *SomePlaceholder, db *gorm.DB, CachedUsers map[int6
 				LanguageCode: placeholder.User.LanguageCode,
 				LastSeen:     placeholder.LastSeenAt,
 			},
-			LifeTime: time.Now().Unix() + 3600, // 60 min
+			LifeTime: time.Now().Unix() + CachedUsersLifeTime, // 60 min
 		}
-		CachedUsers[placeholder.User.ID] = u
-
+		(*CachedUsers)[placeholder.User.ID] = u
 		db.Save(&u.User)
 
 	}
@@ -53,9 +53,9 @@ func AdminRightChatUpdater(b *tgbotapi.BotAPI) {
 		select {
 		case <-AdminRightUpdateTicker.C:
 			{
-				for chatId, _ := range AdminRightsCache {
+				for chatId := range AdminRightsCache {
 					chatCfg := tgbotapi.ChatConfig{ChatID: chatId}
-					res, _ := b.GetChatAdministrators(tgbotapi.ChatAdministratorsConfig{chatCfg})
+					res, _ := b.GetChatAdministrators(tgbotapi.ChatAdministratorsConfig{ChatConfig: chatCfg})
 					for _, admin := range res {
 						AdminRightsCache[chatId][admin.User.ID] = admin
 					}
