@@ -10,6 +10,11 @@ import (
 	"time"
 )
 
+func GenerateDeleteKeyboard(chatId int64, userId int64) tgbotapi.InlineKeyboardMarkup {
+	return tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData("Удалить", fmt.Sprintf("deleteStats;%d;%d", userId, chatId))))
+}
 func printStatToChat(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
 	ChatID := message.Chat.ID
 	logFile, err := os.ReadFile(fmt.Sprintf("%d.log", ChatID))
@@ -60,20 +65,23 @@ func printStatToChat(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
 	msg := tgbotapi.NewPhoto(message.Chat.ID, photo)
 	msg.Caption = fmt.Sprintf("Написано сообщений за %s", fromTimeText)
 	msg.ReplyToMessageID = message.MessageID
-	sended, err := bot.Send(msg)
-	if err != nil {
-		fmt.Println(err.Error())
-	}
-	go func() {
-		timer := time.NewTimer(30 * time.Second)
-		deleteConfig := tgbotapi.DeleteMessageConfig{
-			ChatID:    message.Chat.ID,
-			MessageID: sended.MessageID,
-		}
-		<-timer.C
-		bot.Send(deleteConfig)
 
-	}()
+	msg.ReplyMarkup = GenerateDeleteKeyboard(message.Chat.ID, message.From.ID)
+	_, err = bot.Send(msg)
+	//if err != nil {
+	//	fmt.Println(err.Error())
+	//}
+
+	//go func() {
+	//	timer := time.NewTimer(30 * time.Second)
+	//	deleteConfig := tgbotapi.DeleteMessageConfig{
+	//		ChatID:    message.Chat.ID,
+	//		MessageID: sended.MessageID,
+	//	}
+	//	<-timer.C
+	//	bot.Send(deleteConfig)
+	//
+	//}()
 
 }
 func printPopularWords(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
