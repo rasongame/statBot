@@ -16,14 +16,6 @@ import (
 var (
 	DB *gorm.DB
 
-	AllowedChats = map[int64]bool{
-		559723688:      true, // rasongame
-		-1001549183364: true, // Linux Food
-		-749918079:     true, // 123
-		-1001373811109: true,
-		-1001558727831: true, // 123
-		-1001740354030: true,
-	}
 	BlacklistedUsers = map[int64]bool{5449020876: true}
 	helpText         = strings.TrimSpace(`
 /whoami - отправляет id юзера
@@ -47,7 +39,7 @@ func main() {
 	err = DB.AutoMigrate(&utils.Chat{}, &utils.User{})
 	utils.PanicErr(err)
 	utils.LoadCache(DB, utils.CachedUsers)
-	for i, value := range AllowedChats {
+	for i, value := range utils.AllowedChats {
 		log.Printf("AllowedChat %d: %t", i, value)
 	}
 	log.Printf("Authorized on account %s", bot.Self.UserName)
@@ -64,7 +56,7 @@ func main() {
 			if strings.ToLower(update.Message.Text) == "стало душно" {
 				handlers.SendOpenedWindow(bot, update.Message)
 			}
-			if AllowedChats[update.Message.Chat.ID] {
+			if utils.AllowedChats[update.Message.Chat.ID] {
 				fmt.Println("write to log ", update.Message.Chat.ID)
 				go ProcessDB(update)
 				go func() {
@@ -78,6 +70,12 @@ func main() {
 								LastSeenAt: time.Now(),
 							}
 						}
+						if utils.ChatLogIsLoadedTime[update.Message.Chat.ID].Sub(time.Now()) >= time.Hour*24 {
+							userCacheFinal.Messages = 0
+							utils.ChatLogIsLoadedTime[update.Message.Chat.ID] = time.Now()
+							fmt.Println("day ruined... updating utils.ChatLogIsLoadedTime[update.Message.Chat.ID]")
+						}
+
 						userCacheFinal.Messages++
 
 					}

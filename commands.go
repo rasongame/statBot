@@ -68,20 +68,6 @@ func printStatToChat(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
 
 	msg.ReplyMarkup = GenerateDeleteKeyboard(message.Chat.ID, message.From.ID)
 	_, err = bot.Send(msg)
-	//if err != nil {
-	//	fmt.Println(err.Error())
-	//}
-
-	//go func() {
-	//	timer := time.NewTimer(30 * time.Second)
-	//	deleteConfig := tgbotapi.DeleteMessageConfig{
-	//		ChatID:    message.Chat.ID,
-	//		MessageID: sended.MessageID,
-	//	}
-	//	<-timer.C
-	//	bot.Send(deleteConfig)
-	//
-	//}()
 
 }
 func printPopularWords(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {

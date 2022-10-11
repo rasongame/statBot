@@ -61,14 +61,16 @@ func CalcUserMessages(log []byte, from time.Time) []utils.SomePlaceholder { // m
 			// Выходим отсюда, потому что стата по этому чату уже была запрошена и активно обновляется в памяти
 		}
 		if unm.SenderChat != nil {
-			continue
+			if unm.SenderChat.ID != -1001258220173 && unm.SenderChat.ID != -1001353774734 {
+				continue
+			}
 		}
 		if len(unm.Text) <= 3 {
 			continue
 		}
 		yesterdayTime := from.Unix()
 		if int64(unm.Date) >= yesterdayTime {
-			uzer := users[int64(unm.From.ID)]
+			uzer := users[unm.From.ID]
 			if uzer == nil {
 				uzer = &utils.SomePlaceholder{Messages: 0, LastSeenAt: time.Time{}}
 			}
@@ -128,9 +130,15 @@ func CalcUserMessagesLegacy(log []byte, from time.Time) []utils.SomePlaceholder 
 			fmt.Println(k, err)
 			continue
 		}
-		if unm.SenderChat != nil || len(unm.Text) <= 3 {
+		if unm.SenderChat != nil {
+			if unm.SenderChat.ID != -1001258220173 && unm.SenderChat.ID != -1001353774734 {
+				continue
+			}
+		}
+		if len(unm.Text) <= 3 {
 			continue
 		}
+
 		yesterdayTime := from.Unix()
 		if int64(unm.Date) >= yesterdayTime {
 			//fmt.Println(users[int64(unm.From.ID)])
