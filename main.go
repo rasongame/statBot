@@ -28,7 +28,6 @@ var (
 // 1 Day = 86400 sec
 func init() {
 	utils.Handlers = make(map[string]utils.Handler)
-	utils.CachedUsers = make(map[int64]utils.CacheUser)
 }
 
 func main() {
@@ -38,7 +37,6 @@ func main() {
 	utils.PanicErr(err)
 	err = DB.AutoMigrate(&utils.Chat{}, &utils.User{})
 	utils.PanicErr(err)
-	utils.LoadCache(DB, utils.CachedUsers)
 	for i, value := range utils.AllowedChats {
 		log.Printf("AllowedChat %d: %t", i, value)
 	}
@@ -52,35 +50,14 @@ func main() {
 	for update := range updates {
 		if update.Message != nil {
 			utils.UpdatesProcessed++
+
 			CallHandler(bot, update)
 			if strings.ToLower(update.Message.Text) == "стало душно" {
 				handlers.SendOpenedWindow(bot, update.Message)
 			}
 			if utils.AllowedChats[update.Message.Chat.ID] {
 				fmt.Println("write to log ", update.Message.Chat.ID)
-				go ProcessDB(update)
-				go func() {
-					if utils.ChatLogIsLoaded[update.Message.Chat.ID] {
-						userCache := utils.ChatLogMessageCache[update.Message.Chat.ID]
-						userCacheFinal := userCache[update.Message.From.ID]
-						if userCacheFinal == nil {
-							userCacheFinal = &utils.SomePlaceholder{
-								User:       update.Message.From,
-								Messages:   0,
-								LastSeenAt: time.Now(),
-							}
-						}
-						if utils.ChatLogIsLoadedTime[update.Message.Chat.ID].Sub(time.Now()) >= time.Hour*24 {
-							userCacheFinal.Messages = 0
-							utils.ChatLogIsLoadedTime[update.Message.Chat.ID] = time.Now()
-							fmt.Println("day ruined... updating utils.ChatLogIsLoadedTime[update.Message.Chat.ID]")
-						}
 
-						userCacheFinal.Messages++
-
-					}
-
-				}()
 				WriteToLog(bot, update.Message)
 
 			}
@@ -137,30 +114,5 @@ func CallHandler(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
 				}()
 			}
 		}
-	}
-}
-
-func ProcessDB(update tgbotapi.Update) {
-	var ch *utils.Chat
-	var user *utils.User
-	DB.Where(&utils.Chat{Id: update.Message.Chat.ID}).Find(&ch)
-	DB.Where(&utils.User{Id: update.Message.From.ID}).Find(&user)
-	if ch.Id == 0 {
-		fmt.Println("Add to DB Chat ID ", update.Message.Chat.ID)
-		DB.Create(&utils.Chat{
-			Id:    update.Message.Chat.ID,
-			Type:  update.Message.Chat.Type,
-			Title: update.Message.Chat.Title,
-		})
-	}
-	if user.Id == 0 {
-		fmt.Println("Add to DB User ID ", update.Message.From.ID)
-		DB.Create(&utils.User{
-			Id:           update.Message.From.ID,
-			FirstName:    update.Message.From.FirstName,
-			LastName:     update.Message.From.LastName,
-			Username:     update.Message.From.UserName,
-			LanguageCode: update.Message.From.LanguageCode,
-		})
 	}
 }

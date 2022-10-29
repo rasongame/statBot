@@ -67,11 +67,6 @@ Heap Use: %v MiB
 Sys: %v MiB
 GC Calls: %v
 NumCPU: %d
----
-ChatLogMessageCache len: %d
-for this: %d
-ChatLogIsLoaded len: %d
-for this: %t
 
 `
 	uptime := time.Now().Sub(BotStarted)
@@ -87,10 +82,6 @@ for this: %t
 		utils.BToMb(mem.Sys),
 		mem.NumGC,
 		runtime.NumCPU(),
-		len(utils.ChatLogMessageCache),
-		len(utils.ChatLogMessageCache[message.Chat.ID]),
-		len(utils.ChatLogIsLoaded),
-		utils.ChatLogIsLoaded[message.Chat.ID],
 	)
 	runtime.GC()
 	msg.ReplyToMessageID = message.MessageID

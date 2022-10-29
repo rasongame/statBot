@@ -8,13 +8,8 @@ import (
 var (
 	UpdatesProcessed       int64
 	Handlers               map[string]Handler
-	CachedUsers            map[int64]CacheUser
-	ChatLogIsLoaded        map[int64]bool
-	ChatLogIsLoadedTime    map[int64]time.Time
-	ChatLogMessageCache    map[int64]map[int64]*SomePlaceholder
 	AdminRightsCache       map[int64]map[int64]tgbotapi.ChatMember
 	AdminRightUpdateTicker = time.NewTicker(15 * time.Minute)
-	CachedUsersLifeTime    = int64(10) // in seconds
 	Aliases                = map[string]int64{
 		"flood": LinFloodID,
 		"help":  -1001053617676,
@@ -32,6 +27,5 @@ var (
 
 func init() {
 	AdminRightsCache = map[int64]map[int64]tgbotapi.ChatMember{}
-	ChatLogIsLoaded = map[int64]bool{}
-	ChatLogIsLoadedTime = map[int64]time.Time{}
+
 }

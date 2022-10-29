@@ -18,8 +18,6 @@ func adminPrintStatToChat(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
 	cmdArgs := message.CommandArguments()
 	fromTime := time.Now().AddDate(0, 0, -1)
 	fromTimeText := "последние 24 часа"
-	caseNumber := 0
-
 	if cmdArgs != "" {
 		args := strings.Split(cmdArgs, " ")
 
@@ -27,21 +25,18 @@ func adminPrintStatToChat(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
 		case "month":
 			fromTime = time.Now().AddDate(0, 0, -30)
 			fromTimeText = "последний месяц"
-			caseNumber = 1
+
 		case "week":
 			fromTime = time.Now().AddDate(0, 0, -7)
 			fromTimeText = "последнюю неделю"
-			caseNumber = 2
 
 		case "day":
 			fromTime = time.Now().AddDate(0, 0, -1)
 			fromTimeText = "последние 24 часа"
-			caseNumber = 3
 
 		default:
 			fromTime = time.Now().AddDate(0, 0, -1)
 			fromTimeText = "последние 24 часа"
-			caseNumber = 3
 
 		}
 		if len(args) <= 1 {
@@ -69,15 +64,7 @@ func adminPrintStatToChat(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
 	}
 	var users []utils.SomePlaceholder
 	// CalcUserMessagesLegacy нужен чтобы избежать кэширования ненужной бяки
-	if caseNumber >= 1 {
-		users = CalcUserMessagesLegacy(logFile, fromTime)
-	} else {
-		users = CalcUserMessages(logFile, fromTime)
-	}
-
-	for _, v := range users {
-		utils.UpdateCache(&v, DB, &utils.CachedUsers)
-	}
+	users = CalcUserMessagesLegacy(logFile, fromTime, message.Chat.ID)
 
 	fileName := fmt.Sprintf("%d-activeStat.png", message.Chat.ID)
 	RenderActiveUsers(users, fmt.Sprintf(fileName), int(math.Min(15, float64(len(users)))), fromTimeText)

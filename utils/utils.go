@@ -2,46 +2,14 @@ package utils
 
 import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	"gorm.io/gorm"
 	"log"
 	"strings"
-	"time"
 )
 
 func BToMb(b uint64) uint64 {
 	return b / 1024 / 1024
 }
 
-func LoadCache(db *gorm.DB, CachedUsers map[int64]CacheUser) {
-	var users []User
-	db.Find(&users)
-	for _, user := range users {
-		CachedUsers[user.Id] = CacheUser{
-			User:     user,
-			LifeTime: time.Now().Unix() + CachedUsersLifeTime,
-		}
-	}
-}
-
-func UpdateCache(placeholder *SomePlaceholder, db *gorm.DB, CachedUsers *map[int64]CacheUser) {
-	user := (*CachedUsers)[placeholder.User.ID]
-	if user.LifeTime <= time.Now().Unix() {
-		u := CacheUser{
-			User: User{
-				Id:           placeholder.User.ID,
-				FirstName:    placeholder.User.FirstName,
-				LastName:     placeholder.User.LastName,
-				Username:     placeholder.User.UserName,
-				LanguageCode: placeholder.User.LanguageCode,
-				LastSeen:     placeholder.LastSeenAt,
-			},
-			LifeTime: time.Now().Unix() + CachedUsersLifeTime, // 60 min
-		}
-		(*CachedUsers)[placeholder.User.ID] = u
-		db.Save(&u.User)
-
-	}
-}
 func PanicErr(err error) {
 	if err != nil {
 		log.Panic(err)

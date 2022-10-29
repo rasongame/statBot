@@ -16,14 +16,11 @@ import (
 var (
 	blacklistWords  []string
 	whitelistRegExp = regexp.MustCompile("[a-zA-Zа-яА-Я0-9']+")
-
 	// Мапа состоит из ключей ChatID и значений в виде мапы с ключами UserID и значения SomePlaceholder (user struct)
 	//
 )
 
 func init() {
-	utils.ChatLogMessageCache = map[int64]map[int64]*utils.SomePlaceholder{}
-	utils.ChatLogIsLoaded = map[int64]bool{}
 	fmt.Println("func init() stats.go start")
 	words, err := os.ReadFile("blacklistWords.txt")
 	if err != nil {
@@ -39,86 +36,7 @@ func IsNumeric(s string) bool {
 
 // Key ID; Value = SomePlaceholder
 
-func CalcUserMessages(log []byte, from time.Time) []utils.SomePlaceholder { // map[int64]SomePlaceholder
-	splitted := strings.Split(strings.ReplaceAll(string(log), "\r\n", "\n"), "\n")
-	users := map[int64]*utils.SomePlaceholder{}
-	var chatId int64
-	for k, str := range splitted {
-		var unm tgbotapi.Message
-
-		err := json.Unmarshal([]byte(str), &unm)
-
-		if err != nil {
-			fmt.Println(k, err)
-			continue
-		}
-		if k == 0 {
-			chatId = unm.Chat.ID
-		}
-		if utils.ChatLogIsLoaded[unm.Chat.ID] {
-			chatId = unm.Chat.ID
-			break
-			// Выходим отсюда, потому что стата по этому чату уже была запрошена и активно обновляется в памяти
-		}
-		if unm.SenderChat != nil {
-			if unm.SenderChat.ID != -1001258220173 && unm.SenderChat.ID != -1001353774734 {
-				continue
-			}
-		}
-		if len(unm.Text) <= 3 {
-			continue
-		}
-		yesterdayTime := from.Unix()
-		if int64(unm.Date) >= yesterdayTime {
-			uzer := users[unm.From.ID]
-			if uzer == nil {
-				uzer = &utils.SomePlaceholder{Messages: 0, LastSeenAt: time.Time{}}
-			}
-			if uzer.User == nil {
-				uzer.User = unm.From
-			}
-
-			if uzer.LastSeenAt.Unix() <= unm.Time().Unix() {
-				uzer.LastSeenAt = unm.Time()
-			}
-			uzer.Messages++
-			users[int64(unm.From.ID)] = uzer
-
-		}
-	}
-	s := make([]utils.SomePlaceholder, 0, len(users))
-	// append all map keys-value pairs to the slice
-	if utils.ChatLogMessageCache[chatId] == nil {
-		utils.ChatLogMessageCache[chatId] = map[int64]*utils.SomePlaceholder{}
-	}
-	// Если кэш пуст юзаем этот цикл
-	if !utils.ChatLogIsLoaded[chatId] {
-		fmt.Println("Empty Cache")
-		fmt.Println("Filling with", len(users))
-		for _, v := range users {
-			if utils.ChatLogMessageCache[chatId][v.User.ID] == nil {
-				utils.ChatLogMessageCache[chatId][v.User.ID] = v
-			}
-
-			s = append(s, *v)
-			if !utils.ChatLogIsLoaded[chatId] {
-				utils.ChatLogIsLoaded[chatId] = true
-			}
-		}
-	} else {
-		for _, v := range utils.ChatLogMessageCache[chatId] {
-			s = append(s, *v)
-		}
-	}
-	// Если в кэше юзеры загружены
-
-	sort.SliceStable(s, func(i, j int) bool {
-		return s[i].Messages > s[j].Messages
-	})
-
-	return s
-}
-func CalcUserMessagesLegacy(log []byte, from time.Time) []utils.SomePlaceholder { // map[int64]SomePlaceholder
+func CalcUserMessagesLegacy(log []byte, from time.Time, chatId int64) []utils.SomePlaceholder { // map[int64]SomePlaceholder
 	splitted := strings.Split(strings.ReplaceAll(string(log), "\r\n", "\n"), "\n")
 	users := make(map[int64]utils.SomePlaceholder)
 	for k, str := range splitted {

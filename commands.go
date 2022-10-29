@@ -21,7 +21,6 @@ func printStatToChat(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
 	cmdArgs := message.CommandArguments()
 	fromTime := time.Now().AddDate(0, 0, -1)
 	fromTimeText := "последние 24 часа"
-	caseNumber := 0
 	if err != nil {
 		bot.Send(tgbotapi.NewMessage(message.Chat.ID, err.Error()))
 		return
@@ -32,33 +31,20 @@ func printStatToChat(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
 		case "month":
 			fromTime = time.Now().AddDate(0, -1, 0)
 			fromTimeText = "последний месяц"
-			caseNumber = 1
 
 		case "week":
 			fromTime = time.Now().AddDate(0, 0, -7)
 			fromTimeText = "последнюю неделю"
-			caseNumber = 2
 
 		case "day":
 			fromTime = time.Now().AddDate(0, 0, -1)
 			fromTimeText = "последние 24 часа"
-			caseNumber = 3
 
 		}
 	}
 	var users []utils.SomePlaceholder
-	if caseNumber >= 1 {
-		users = CalcUserMessagesLegacy(logFile, fromTime)
+	users = CalcUserMessagesLegacy(logFile, fromTime, message.Chat.ID)
 
-	} else {
-		users = CalcUserMessages(logFile, fromTime)
-
-	}
-	go func() {
-		for _, v := range users {
-			utils.UpdateCache(&v, DB, &utils.CachedUsers)
-		}
-	}()
 	fileName := fmt.Sprintf("%d-activeStat.png", message.Chat.ID)
 	RenderActiveUsers(users, fmt.Sprintf(fileName), int(math.Min(15, float64(len(users)))), fromTimeText)
 	photo := tgbotapi.FilePath(fileName)
