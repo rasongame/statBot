@@ -3,3 +3,7 @@
 *.png
 .idea/*
 token
+statBot
+bot.db
+font.ttf
+Code2000.ttf

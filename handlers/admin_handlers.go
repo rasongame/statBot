@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"database/sql"
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"runtime"
@@ -54,7 +55,7 @@ func SendBotHealth(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
 
 	text :=
 		`
-Updates Processed: %d
+<code>Updates Processed: %d
 BotUptime: %s 
 Hostname: %s
 Go Version: %s
@@ -67,8 +68,22 @@ Heap Use: %v MiB
 Sys: %v MiB
 GC Calls: %v
 NumCPU: %d
-
+-- SQL
+InUse: %d
+Idle: %d
+WaitCount: %d
+WaitDuration: %d
+MaxIdleClosed: %d
+MaxIdleTimeClosed: %d
+MaxLifetimeClosed: %d
+</code>
 `
+	sqlDB, _ := utils.DB.DB()
+	var stats sql.DBStats
+	if sqlDB != nil {
+		stats = sqlDB.Stats()
+	}
+
 	uptime := time.Now().Sub(BotStarted)
 	info := utils.GetAboutInfo()
 	msg := tgbotapi.NewMessage(message.Chat.ID, text)
@@ -82,9 +97,17 @@ NumCPU: %d
 		utils.BToMb(mem.Sys),
 		mem.NumGC,
 		runtime.NumCPU(),
+		stats.InUse,
+		stats.Idle,
+		stats.WaitCount,
+		stats.WaitDuration,
+		stats.MaxIdleClosed,
+		stats.MaxIdleTimeClosed,
+		stats.MaxLifetimeClosed,
 	)
 	runtime.GC()
 	msg.ReplyToMessageID = message.MessageID
+	msg.ParseMode = "html"
 	_, err := bot.Send(msg)
 
 	if err != nil {

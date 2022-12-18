@@ -12,6 +12,7 @@ func BToMb(b uint64) uint64 {
 
 func PanicErr(err error) {
 	if err != nil {
+		log.Println(err.Error())
 		log.Panic(err)
 	}
 }

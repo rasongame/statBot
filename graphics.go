@@ -1,45 +1,97 @@
 package main
 
 import (
+	"context"
 	"fmt"
-	"github.com/golang/freetype/truetype"
-	"github.com/wcharczuk/go-chart"
-	"io/ioutil"
+	"github.com/chromedp/chromedp"
+	"github.com/go-echarts/go-echarts/v2/charts"
+	"github.com/go-echarts/go-echarts/v2/opts"
+	"github.com/go-echarts/go-echarts/v2/types"
 	"os"
 	"statBot/utils"
 )
+func generatePieItems(elements []utils.SomePlaceholder, limit int) []opts.PieData {
 
-var (
-	font = readFont("Code2000.ttf")
-)
+	items := make([]opts.PieData, 0)
+	for _, user := range elements[:limit] {
+		items = append(items, opts.PieData{
+			Name:  fmt.Sprintf("%s %s [%s]", user.User.FirstName, user.User.LastName, user.User.UserName),
+			Value: user.Messages})
+	}
 
-func readFont(filename string) *truetype.Font {
-	data, err := ioutil.ReadFile(filename)
-	utils.PanicErr(err)
-	fnt, err := truetype.Parse(data)
-	utils.PanicErr(err)
-	return fnt
+	return items
 }
+func makeScreenshot(fileName string) {
+	ctx, cancel := chromedp.NewContext(
+		context.Background(),
+		// chromedp.WithDebugf(log.Printf),
+	)
+	defer cancel()
 
+	var buf []byte
+	cwd, err := os.Getwd()
+	utils.PanicErr(err)
+	task := chromedp.Tasks{
+		// use file:// for a local file
+		chromedp.Navigate(fmt.Sprintf("file://%s/%s.html", cwd, fileName)),
+		// set resolution for screenshot
+		chromedp.EmulateViewport(2000, 1200),
+		// take screenshot
+		chromedp.FullScreenshot(&buf, 125),
+	}
+
+	// run tasks
+	if err := chromedp.Run(ctx, task); err != nil {
+		utils.PanicErr(err)
+	}
+	// write png
+	finalFile, err := os.Create(fileName)
+	_, err = finalFile.Write(buf)
+}
 func RenderActiveUsers(elements []utils.SomePlaceholder, fileName string, limit int, fromTimeText string) {
-	var activeStat []chart.Value
-	for _, v := range elements[:limit] {
-		activeStat = append(activeStat, chart.Value{
-			Style: chart.Style{},
-			Label: fmt.Sprintf("%s %s %d", v.User.FirstName, v.User.LastName, v.Messages),
-			Value: float64(v.Messages),
-		})
-	}
-	finalChart := chart.PieChart{
-		Title:  fmt.Sprintln("Активные флудильщики за ", fromTimeText),
-		Values: activeStat,
-		Width:  3072,
-		Height: 2048,
-		DPI:    72.0,
-		Font:   font,
-	}
-	f, _ := os.Create(fileName)
-	defer f.Close()
-	finalChart.Render(chart.PNG, f)
+	pie := charts.NewPie()
+	pie.SetGlobalOptions(
+		charts.WithInitializationOpts(
+			opts.Initialization{
+				Theme:  types.ThemeChalk,
+				Width:  "2000px",
+				Height: "1200px",
+			}),
+		charts.WithTitleOpts(
+			opts.Title{
+				Title:    "Флудильщики за " + fromTimeText,
+				Subtitle: "",
+			},
+		),
+	)
+	pie.SetSeriesOptions()
+	pie.AddSeries("", generatePieItems(elements, limit))
+	//pie
+	pie.SetSeriesOptions(
+		charts.WithPieChartOpts(
+			opts.PieChart{
+				Center: []string{"50%", "50%"},
+				Radius: nil,
+			}),
+		charts.WithLabelOpts(
+			opts.Label{
+				FontFamily:    "Noto Sans",
+				FontSize:      22,
+				VerticalAlign: "auto",
+				FontWeight:    "bold",
+				Show:          true,
+				Formatter:     "{b}: {c}",
+			},
+		),
+	)
+	f, err := os.Create(fmt.Sprintf("%s.html", fileName))
+
+	utils.PanicErr(err)
+	err = pie.Render(f)
+	utils.PanicErr(err)
+
+	// screenshot buffer
+	makeScreenshot(fileName)
+	utils.PanicErr(err)
 
 }

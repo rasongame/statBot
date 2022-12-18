@@ -14,8 +14,6 @@ import (
 )
 
 var (
-	DB *gorm.DB
-
 	BlacklistedUsers = map[int64]bool{5449020876: true}
 	helpText         = strings.TrimSpace(`
 /whoami - отправляет id юзера
@@ -33,9 +31,12 @@ func init() {
 func main() {
 	bot := InitBot()
 	var err error
-	DB, err = gorm.Open(sqlite.Open("bot.db"), &gorm.Config{})
+	utils.DB, err = gorm.Open(sqlite.Open("bot.db"), &gorm.Config{})
+	DB := utils.DB
+	x, err := DB.DB()
+	x.SetMaxOpenConns(1)
 	utils.PanicErr(err)
-	err = DB.AutoMigrate(&utils.Chat{}, &utils.User{})
+	err = DB.AutoMigrate(&utils.Chat{}, &utils.User{}, &utils.ChatMessage{})
 	utils.PanicErr(err)
 	for i, value := range utils.AllowedChats {
 		log.Printf("AllowedChat %d: %t", i, value)
@@ -58,7 +59,23 @@ func main() {
 			if utils.AllowedChats[update.Message.Chat.ID] {
 				fmt.Println("write to log ", update.Message.Chat.ID)
 
-				WriteToLog(bot, update.Message)
+				go func() {
+					if update.Message != nil {
+						tx := DB.Create(&utils.ChatMessage{
+							ChatId:        update.Message.Chat.ID,
+							MessageId:     int64(update.Message.MessageID),
+							UserId:        update.Message.From.ID,
+							Text:          update.Message.Text,
+							Date:          update.Message.Date,
+							UserFirstName: update.Message.From.FirstName,
+							UserLastName:  update.Message.From.LastName,
+							UserUsername:  update.Message.From.UserName,
+						})
+						tx.Commit()
+					}
+
+				}()
+				//WriteToLog(bot, update.Message)
 
 			}
 		}

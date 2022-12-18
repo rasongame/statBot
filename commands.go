@@ -5,7 +5,6 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"math"
 	"os"
-	"statBot/utils"
 	"strings"
 	"time"
 )
@@ -16,15 +15,12 @@ func GenerateDeleteKeyboard(chatId int64, userId int64) tgbotapi.InlineKeyboardM
 			tgbotapi.NewInlineKeyboardButtonData("Удалить", fmt.Sprintf("deleteStats;%d;%d", userId, chatId))))
 }
 func printStatToChat(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
+	startTime := time.Now()
 	ChatID := message.Chat.ID
-	logFile, err := os.ReadFile(fmt.Sprintf("%d.log", ChatID))
 	cmdArgs := message.CommandArguments()
 	fromTime := time.Now().AddDate(0, 0, -1)
 	fromTimeText := "последние 24 часа"
-	if err != nil {
-		bot.Send(tgbotapi.NewMessage(message.Chat.ID, err.Error()))
-		return
-	}
+
 	if cmdArgs != "" {
 		args := strings.Split(cmdArgs, " ")
 		switch args[0] {
@@ -42,18 +38,18 @@ func printStatToChat(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
 
 		}
 	}
-	var users []utils.SomePlaceholder
-	users = CalcUserMessagesLegacy(logFile, fromTime, message.Chat.ID)
+
+	totalMessages, users := CalcUserMessages(fromTime, ChatID)
 
 	fileName := fmt.Sprintf("%d-activeStat.png", message.Chat.ID)
 	RenderActiveUsers(users, fmt.Sprintf(fileName), int(math.Min(15, float64(len(users)))), fromTimeText)
 	photo := tgbotapi.FilePath(fileName)
 	msg := tgbotapi.NewPhoto(message.Chat.ID, photo)
-	msg.Caption = fmt.Sprintf("Написано сообщений за %s", fromTimeText)
+	msg.Caption = fmt.Sprintf("Написано сообщений за %s \nВсего сообщений: %d\n%v", fromTimeText, totalMessages, time.Now().Sub(startTime))
 	msg.ReplyToMessageID = message.MessageID
 
 	msg.ReplyMarkup = GenerateDeleteKeyboard(message.Chat.ID, message.From.ID)
-	_, err = bot.Send(msg)
+	bot.Send(msg)
 
 }
 func printPopularWords(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {

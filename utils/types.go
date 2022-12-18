@@ -42,6 +42,16 @@ type Chat struct {
 	Type  string `json:"type"`
 	Title string `json:"title"`
 }
+type ChatMessage struct {
+	ChatId        int64  `json:"chat_id"`
+	MessageId     int64  `json:"message_id"`
+	UserId        int64  `json:"user_id"`
+	Text          string `json:"text"`
+	Date          int    `json:"date"`
+	UserFirstName string `json:"user_first_name"`
+	UserLastName  string `json:"user_last_name"`
+	UserUsername  string `json:"user_username"`
+}
 
 func GetAboutInfo() AboutBot {
 	info := AboutBot{}

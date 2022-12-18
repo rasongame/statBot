@@ -5,7 +5,6 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"log"
 	"math"
-	"os"
 	"statBot/utils"
 	"strconv"
 	"strings"
@@ -13,6 +12,7 @@ import (
 )
 
 func adminPrintStatToChat(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
+	startTime := time.Now()
 	var chatID = utils.LinFloodID
 	var convErr error
 	cmdArgs := message.CommandArguments()
@@ -57,23 +57,13 @@ func adminPrintStatToChat(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
 		}
 	}
 
-	logFile, err := os.ReadFile(fmt.Sprintf("%d.log", chatID))
-	if err != nil {
-		bot.Send(tgbotapi.NewMessage(message.Chat.ID, err.Error()))
-		return
-	}
-	var users []utils.SomePlaceholder
-	// CalcUserMessagesLegacy нужен чтобы избежать кэширования ненужной бяки
-	users = CalcUserMessagesLegacy(logFile, fromTime, message.Chat.ID)
-
-	fileName := fmt.Sprintf("%d-activeStat.png", message.Chat.ID)
-	RenderActiveUsers(users, fmt.Sprintf(fileName), int(math.Min(15, float64(len(users)))), fromTimeText)
+	totalMessages, users := CalcUserMessages(fromTime, chatID)
+	fileName := fmt.Sprintf("%d-activeStat.png", chatID)
+	//RenderActiveUsers(users, fileName, int(math.Min(15, float64(len(users)))), fromTimeText)
+	RenderActiveUsers(users, fileName, int(math.Min(15, float64(len(users)))), fromTimeText)
 	photo := tgbotapi.FilePath(fileName)
 	msg := tgbotapi.NewPhoto(message.Chat.ID, photo)
-	msg.Caption = fmt.Sprintf("Написано сообщений за %s", fromTimeText)
-	_, err = bot.Send(msg)
-	if err != nil {
-		fmt.Errorf(err.Error())
-	}
+	msg.Caption = fmt.Sprintf("Написано сообщений: %d\nОбработано за %v", totalMessages, time.Now().Sub(startTime))
+	bot.Send(msg)
 
 }
