@@ -37,10 +37,20 @@ type User struct {
 	LanguageCode string `json:"language_code"`
 	LastSeen     time.Time
 }
+
 type Chat struct {
 	Id    int64  `json:"id"`
 	Type  string `json:"type"`
 	Title string `json:"title"`
+}
+type ChatAudio struct {
+	MessageId     int64
+	UniqueFileId  string
+	ChatId        int64
+	FromId        int64
+	UserFirstName string `json:"user_first_name"`
+	UserLastName  string `json:"user_last_name"`
+	UserUsername  string `json:"user_username"`
 }
 type ChatMessage struct {
 	ChatId        int64  `json:"chat_id"`

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"github.com/glebarez/sqlite"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -14,6 +15,7 @@ import (
 )
 
 var (
+	dbPath           string
 	BlacklistedUsers = map[int64]bool{5449020876: true}
 	helpText         = strings.TrimSpace(`
 /whoami - отправляет id юзера
@@ -27,16 +29,44 @@ var (
 func init() {
 	utils.Handlers = make(map[string]utils.Handler)
 }
+func parseFlags() {
+	var allowedChats, blacklistedUsers string
+	defaultAllowedChats := "559723688,-1001549183364,-749918079,-1001373811109,-1001558727831,-1001740354030,-1001053617676"
+	defaultBlackListed := "5449020876"
+
+	flag.StringVar(&dbPath, "db", "bot.db", "bot.db path")
+	flag.StringVar(&allowedChats, "allowedChats", defaultAllowedChats, "allowedChats")
+	flag.StringVar(&blacklistedUsers, "blacklistedUsers", defaultBlackListed, "blacklistedUsers")
+
+	flag.Parse()
+
+	splittedChats := strings.Split(allowedChats, ",")
+	splittedUsers := strings.Split(blacklistedUsers, ",")
+
+	for i, str := range splittedChats {
+		fmt.Println(i, "Adding", str)
+		chatId, err := strconv.ParseInt(str, 10, 64)
+		utils.PanicErr(err)
+		utils.AllowedChats[chatId] = true
+	}
+	for i, str := range splittedUsers {
+		fmt.Println(i, "Blacklisting", str)
+		userId, err := strconv.ParseInt(str, 10, 64)
+		utils.PanicErr(err)
+		BlacklistedUsers[userId] = true
+	}
+}
 
 func main() {
+	parseFlags()
 	bot := InitBot()
 	var err error
-	utils.DB, err = gorm.Open(sqlite.Open("bot.db"), &gorm.Config{})
+	utils.DB, err = gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
 	DB := utils.DB
 	x, err := DB.DB()
 	x.SetMaxOpenConns(1)
 	utils.PanicErr(err)
-	err = DB.AutoMigrate(&utils.Chat{}, &utils.User{}, &utils.ChatMessage{})
+	err = DB.AutoMigrate(&utils.Chat{}, &utils.User{}, &utils.ChatMessage{}, &utils.ChatAudio{})
 	utils.PanicErr(err)
 	for i, value := range utils.AllowedChats {
 		log.Printf("AllowedChat %d: %t", i, value)
@@ -60,17 +90,45 @@ func main() {
 				fmt.Println("write to log ", update.Message.Chat.ID)
 
 				go func() {
+					if update.EditedMessage != nil {
+						msg := update.EditedMessage
+						if msg.Audio != nil {
+							tx := DB.Create(&utils.ChatAudio{
+								MessageId:     int64(msg.MessageID),
+								UniqueFileId:  msg.Audio.FileID,
+								ChatId:        msg.Chat.ID,
+								FromId:        msg.From.ID,
+								UserFirstName: msg.From.FirstName,
+								UserLastName:  msg.From.LastName,
+								UserUsername:  msg.From.UserName,
+							})
+							tx.Commit()
+						}
+					}
 					if update.Message != nil {
-						tx := DB.Create(&utils.ChatMessage{
-							ChatId:        update.Message.Chat.ID,
+						tx := DB.Begin()
+						msg := update.Message
+						tx.Create(&utils.ChatMessage{
+							ChatId:        msg.Chat.ID,
 							MessageId:     int64(update.Message.MessageID),
-							UserId:        update.Message.From.ID,
-							Text:          update.Message.Text,
-							Date:          update.Message.Date,
-							UserFirstName: update.Message.From.FirstName,
-							UserLastName:  update.Message.From.LastName,
-							UserUsername:  update.Message.From.UserName,
+							Text:          msg.Text,
+							UserId:        msg.From.ID,
+							Date:          msg.Date,
+							UserFirstName: msg.From.FirstName,
+							UserLastName:  msg.From.LastName,
+							UserUsername:  msg.From.UserName,
 						})
+						if update.Message.Audio != nil {
+							tx.Create(&utils.ChatAudio{
+								UniqueFileId:  msg.Audio.FileID,
+								MessageId:     int64(msg.MessageID),
+								ChatId:        msg.Chat.ID,
+								FromId:        msg.From.ID,
+								UserFirstName: msg.From.FirstName,
+								UserLastName:  msg.From.LastName,
+								UserUsername:  msg.From.UserName,
+							})
+						}
 						tx.Commit()
 					}
 

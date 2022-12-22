@@ -11,10 +11,8 @@ func init() {
 
 }
 
-// Key ID; Value = SomePlaceholder
 func CalcUserMessages(from time.Time, chatId int64) (int, []utils.SomePlaceholder) {
 	users := make(map[int64]utils.SomePlaceholder)
-	//make(map[int64]utils.SomePlaceholder)
 	var messageListForChats []utils.ChatMessage
 	var totalMessages int
 	utils.DB.Where("chat_id = ?", chatId).Find(&messageListForChats)

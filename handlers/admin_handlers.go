@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"os"
 	"runtime"
 	"statBot/utils"
 	"strconv"
@@ -69,6 +70,7 @@ Sys: %v MiB
 GC Calls: %v
 NumCPU: %d
 -- SQL
+Size: %s
 InUse: %d
 Idle: %d
 WaitCount: %d
@@ -87,8 +89,12 @@ MaxLifetimeClosed: %d
 	uptime := time.Now().Sub(BotStarted)
 	info := utils.GetAboutInfo()
 	msg := tgbotapi.NewMessage(message.Chat.ID, text)
+	dbFile, err := os.Stat("bot.db")
+	utils.PanicErr(err)
+	fileWeight := dbFile.Size()
 	runtime.ReadMemStats(&mem)
-	msg.Text = fmt.Sprintf(msg.Text, utils.UpdatesProcessed, uptime, info.Hostname,
+	msg.Text = fmt.Sprintf(msg.Text,
+		utils.UpdatesProcessed, uptime, info.Hostname,
 		info.GoVersion, info.Platform, info.Architecture,
 		utils.BToMb(mem.Alloc),
 		utils.BToMb(mem.TotalAlloc),
@@ -97,6 +103,7 @@ MaxLifetimeClosed: %d
 		utils.BToMb(mem.Sys),
 		mem.NumGC,
 		runtime.NumCPU(),
+		fmt.Sprintf("%d mb", fileWeight/(1024*1024)),
 		stats.InUse,
 		stats.Idle,
 		stats.WaitCount,
@@ -108,7 +115,7 @@ MaxLifetimeClosed: %d
 	runtime.GC()
 	msg.ReplyToMessageID = message.MessageID
 	msg.ParseMode = "html"
-	_, err := bot.Send(msg)
+	_, err = bot.Send(msg)
 
 	if err != nil {
 		fmt.Println(err)
