@@ -7,9 +7,16 @@ import (
 	"github.com/go-echarts/go-echarts/v2/charts"
 	"github.com/go-echarts/go-echarts/v2/opts"
 	"github.com/go-echarts/go-echarts/v2/types"
+	"math/rand"
 	"os"
 	"statBot/utils"
+	"strings"
+	"time"
 )
+
+func init() {
+	rand.Seed(time.Now().Unix())
+}
 func generatePieItems(elements []utils.SomePlaceholder, limit int) []opts.PieData {
 
 	items := make([]opts.PieData, 0)
@@ -48,8 +55,31 @@ func makeScreenshot(fileName string) {
 	finalFile, err := os.Create(fileName)
 	_, err = finalFile.Write(buf)
 }
+
+var (
+	subtitlePatterns = []string{
+		"Разведка доложила, что по этим данным, %{Name}s — самый опасный флудераст на весь чат. С этим надо что-то делать.",
+		"Эй-эй-эй, это что у нас... Ага, Больше всех нафлудил %{Name}s за данный срок. Настоящий флудераст.",
+		"Woop-woop! That's the sound of da police. Выходи с поднятыми руками, %{Name}s.",
+		"Ты пидор, %{Name}s.",
+		"Zeit zur Arbeit zu gehen, %{Name}s.",
+	}
+)
+
+func Tprintf(format string, params map[string]interface{}) string {
+	for key, val := range params {
+		format = strings.Replace(format, "%{"+key+"}s", fmt.Sprintf("%s", val), -1)
+	}
+	return fmt.Sprintf(format)
+}
+
 func RenderActiveUsers(elements []utils.SomePlaceholder, fileName string, limit int, fromTimeText string) {
 	pie := charts.NewPie()
+	flooderName := fmt.Sprintf("%s %s [%s]", elements[0].User.FirstName, elements[0].User.LastName, elements[0].User.UserName)
+	textStyle := opts.TextStyle{
+		FontFamily: "Noto Sans",
+		FontSize:   24,
+	}
 	pie.SetGlobalOptions(
 		charts.WithInitializationOpts(
 			opts.Initialization{
@@ -59,8 +89,9 @@ func RenderActiveUsers(elements []utils.SomePlaceholder, fileName string, limit 
 			}),
 		charts.WithTitleOpts(
 			opts.Title{
-				Title:    "Флудильщики за " + fromTimeText,
-				Subtitle: "",
+				Title:         "Флудильщики за " + fromTimeText,
+				Subtitle:      Tprintf(subtitlePatterns[rand.Int()%len(subtitlePatterns)], map[string]interface{}{"Name": flooderName}),
+				SubtitleStyle: &textStyle,
 			},
 		),
 	)

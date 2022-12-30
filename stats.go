@@ -15,27 +15,27 @@ func CalcUserMessages(from time.Time, chatId int64) (int, []utils.SomePlaceholde
 	users := make(map[int64]utils.SomePlaceholder)
 	var messageListForChats []utils.ChatMessage
 	var totalMessages int
-	utils.DB.Where("chat_id = ?", chatId).Find(&messageListForChats)
-	for chatMessageKey := range messageListForChats {
-		var chatMessage = messageListForChats[chatMessageKey]
-		yesterdayTime := from.Unix()
-		if int64(chatMessage.Date) >= yesterdayTime {
-			totalMessages++
-			uzer := users[chatMessage.UserId]
-			if uzer.User == nil {
-				uzer.User = &tgbotapi.User{
-					ID:        chatMessage.UserId,
-					IsBot:     false,
-					FirstName: chatMessage.UserFirstName,
-					LastName:  chatMessage.UserLastName,
-					UserName:  chatMessage.UserUsername,
-				}
+	yesterdayTime := from.Unix()
 
+	//utils.DB.Select("*, COUNT(*)").Where("chat_id = ? and date >= = ", yesterdayTime).Group("user_id").Having("COUNT(*)>1").Find(&messageListForChats)
+	utils.DB.Where("chat_id = ? and date >= ?", chatId, yesterdayTime).Find(&messageListForChats)
+	for chatMessageKey := range messageListForChats {
+		chatMessage := messageListForChats[chatMessageKey]
+		totalMessages++
+		uzer := users[chatMessage.UserId]
+		if uzer.User == nil {
+			uzer.User = &tgbotapi.User{
+				ID:        chatMessage.UserId,
+				IsBot:     false,
+				FirstName: chatMessage.UserFirstName,
+				LastName:  chatMessage.UserLastName,
+				UserName:  chatMessage.UserUsername,
 			}
-			uzer.Messages++
-			users[chatMessage.UserId] = uzer
 
 		}
+		uzer.Messages++
+		users[chatMessage.UserId] = uzer
+
 	}
 	s := make([]utils.SomePlaceholder, 0, len(users))
 	for _, v := range users {
