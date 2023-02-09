@@ -14,8 +14,17 @@ import (
 	"time"
 )
 
+var (
+	chromeContext context.Context
+	cancel        context.CancelFunc
+)
+
 func init() {
 	rand.Seed(time.Now().Unix())
+	chromeContext, cancel = chromedp.NewContext(context.Background())
+	//defer cancel()
+	fmt.Println(chromeContext.Done())
+
 }
 func generatePieItems(elements []utils.SomePlaceholder, limit int) []opts.PieData {
 
@@ -29,13 +38,10 @@ func generatePieItems(elements []utils.SomePlaceholder, limit int) []opts.PieDat
 	return items
 }
 func makeScreenshot(fileName string) {
-	ctx, cancel := chromedp.NewContext(
-		context.Background(),
-		// chromedp.WithDebugf(log.Printf),
-	)
-	defer cancel()
 
 	var buf []byte
+	ctx, _cancel := chromedp.NewContext(chromeContext)
+	defer _cancel()
 	cwd, err := os.Getwd()
 	utils.PanicErr(err)
 	task := chromedp.Tasks{

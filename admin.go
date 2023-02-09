@@ -60,6 +60,7 @@ func adminPrintStatToChat(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
 	totalMessages, users := CalcUserMessages(fromTime, chatID)
 	fileName := fmt.Sprintf("%d-activeStat.png", chatID)
 	//RenderActiveUsers(users, fileName, int(math.Min(15, float64(len(users)))), fromTimeText)
+
 	RenderActiveUsers(users, fileName, int(math.Min(15, float64(len(users)))), fromTimeText)
 	photo := tgbotapi.FilePath(fileName)
 	msg := tgbotapi.NewPhoto(message.Chat.ID, photo)
