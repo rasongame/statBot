@@ -3,12 +3,22 @@ package utils
 import (
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"gorm.io/gorm"
 	"log"
 	"os"
 	"runtime"
 	"time"
 )
 
+type ControlStruct struct {
+	Cmd  string
+	Args string
+}
+type SharedBaseObject struct {
+	Bot              *tgbotapi.BotAPI
+	DB               *gorm.DB
+	AllowedChatsMode bool
+}
 type SomePlaceholder struct {
 	User       *tgbotapi.User
 	Messages   int

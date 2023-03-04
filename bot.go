@@ -9,14 +9,11 @@ import (
 	"statBot/handlers"
 )
 
+
 func InitBotCommands(bot *tgbotapi.BotAPI) {
 	statsCmd := tgbotapi.BotCommand{
 		Command:     "stats",
 		Description: "Стата по количеству сообщений от юзеров (/stats day/week/month)",
-	}
-	popCmd := tgbotapi.BotCommand{
-		Command:     "pop",
-		Description: "Стата по популярным словам (day/week/month)",
 	}
 	decodeCmd := tgbotapi.BotCommand{
 		Command:     "decode",
@@ -27,7 +24,7 @@ func InitBotCommands(bot *tgbotapi.BotAPI) {
 		Description: "Base64 => \" привет мир\" ",
 	}
 
-	cmds := tgbotapi.NewSetMyCommands(statsCmd, popCmd, decodeCmd, decode64Cmd)
+	cmds := tgbotapi.NewSetMyCommands(statsCmd, decodeCmd, decode64Cmd)
 	bot.Send(cmds)
 }
 func InitBotHandlers(bot *tgbotapi.BotAPI) {
@@ -42,7 +39,6 @@ func InitBotHandlers(bot *tgbotapi.BotAPI) {
 	AddHandler("adminlist", handlers.SendAdminList, filters.IsAdminFilter)
 	//
 	AddHandler("stats", printStatToChat, filters.ChatOnly)
-	AddHandler("pop", printPopularWords, filters.ChatOnly)
 	//
 	AddHandler("test", handlers.Test, filters.FalseFilter)
 

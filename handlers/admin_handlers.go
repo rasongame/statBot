@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"log"
 	"os"
 	"runtime"
 	"statBot/utils"
@@ -16,6 +17,15 @@ var (
 	BotStarted = time.Now()
 )
 
+//	func SendAdminMessage(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
+//		log.Println("SendAdminMessage fired")
+//		var chatIds []int64
+//		targetMessage := message.CommandArguments()
+//		utils.DB.Raw("select distinct on (chat_id) chat_id from chat_messages ;")
+//		utils.DB.Select("distinct on (chat_id) chat_id").Find(&chatIds)
+//		fmt.Println("%v \n %s", chatIds, targetMessage)
+//
+// }
 func SendAdminList(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
 	var args []string
 	msg := "Admin list\n"
@@ -56,6 +66,7 @@ func SendBotHealth(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
 
 	text :=
 		`
+
 <code>Updates Processed: %d
 BotUptime: %s 
 Hostname: %s
@@ -69,8 +80,8 @@ Heap Use: %v MiB
 Sys: %v MiB
 GC Calls: %v
 NumCPU: %d
+NumGoroutine: %d
 -- SQL
-Size: %s
 InUse: %d
 Idle: %d
 WaitCount: %d
@@ -78,6 +89,10 @@ WaitDuration: %d
 MaxIdleClosed: %d
 MaxIdleTimeClosed: %d
 MaxLifetimeClosed: %d
+--
+etc.
+AVG Load: %s
+System Uptime: %s 
 </code>
 `
 	sqlDB, _ := utils.DB.DB()
@@ -85,13 +100,27 @@ MaxLifetimeClosed: %d
 	if sqlDB != nil {
 		stats = sqlDB.Stats()
 	}
+	systemUptime := "not available"
+	loadAvg := ""
+	if runtime.GOOS != "windows" {
+		_systemUptime, err := os.ReadFile("/proc/uptime")
+		_loadAvg, avgErr := os.ReadFile("/proc/loadavg")
+		systemUptime = string(_systemUptime)
+		loadAvg = string(_loadAvg)
+		if err != nil {
+			log.Println("Error occured:", err)
+			systemUptime = "not available"
+		}
+		if avgErr != nil {
+			log.Println("Error occured:", avgErr)
+			loadAvg = "not available"
+		}
+	}
 
 	uptime := time.Now().Sub(BotStarted)
 	info := utils.GetAboutInfo()
 	msg := tgbotapi.NewMessage(message.Chat.ID, text)
-	dbFile, err := os.Stat("bot.db")
-	utils.PanicErr(err)
-	fileWeight := dbFile.Size()
+
 	runtime.ReadMemStats(&mem)
 	msg.Text = fmt.Sprintf(msg.Text,
 		utils.UpdatesProcessed, uptime, info.Hostname,
@@ -103,7 +132,7 @@ MaxLifetimeClosed: %d
 		utils.BToMb(mem.Sys),
 		mem.NumGC,
 		runtime.NumCPU(),
-		fmt.Sprintf("%d mb", fileWeight/(1024*1024)),
+		runtime.NumGoroutine(),
 		stats.InUse,
 		stats.Idle,
 		stats.WaitCount,
@@ -111,11 +140,13 @@ MaxLifetimeClosed: %d
 		stats.MaxIdleClosed,
 		stats.MaxIdleTimeClosed,
 		stats.MaxLifetimeClosed,
+		loadAvg,
+		systemUptime,
 	)
 	runtime.GC()
 	msg.ReplyToMessageID = message.MessageID
 	msg.ParseMode = "html"
-	_, err = bot.Send(msg)
+	_, err := bot.Send(msg)
 
 	if err != nil {
 		fmt.Println(err)

@@ -10,5 +10,6 @@ func AddHandler(command string, handler utils.HandlerFunc, filter utils.FilterFu
 	}
 	h := utils.Handler{handler, filter}
 	utils.Handlers[command] = h
-	return h, true
+    utils.Handler
+    return h, true
 }

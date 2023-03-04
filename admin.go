@@ -22,6 +22,12 @@ func adminPrintStatToChat(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
 		args := strings.Split(cmdArgs, " ")
 
 		switch args[0] {
+		case "year":
+			fromTime = time.Now().AddDate(-1, 0, 0)
+			fromTimeText = "последний год"
+		case "alltime":
+			fromTime = time.Unix(0, 0)
+			fromTimeText = "всё время существования бота здесь"
 		case "month":
 			fromTime = time.Now().AddDate(0, 0, -30)
 			fromTimeText = "последний месяц"

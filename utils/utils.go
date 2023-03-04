@@ -2,6 +2,7 @@ package utils
 
 import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"gorm.io/gorm"
 	"log"
 	"strings"
 )
@@ -74,4 +75,48 @@ func RightCommandExtractor(m *tgbotapi.Message, botNickName string) string {
 	}
 
 	return ""
+}
+
+func LogMessage(update tgbotapi.Update, DB *gorm.DB) {
+	if update.EditedMessage != nil {
+		msg := update.EditedMessage
+		if msg.Audio != nil {
+			tx := DB.Create(ChatAudio{
+				MessageId:     int64(msg.MessageID),
+				UniqueFileId:  msg.Audio.FileID,
+				ChatId:        msg.Chat.ID,
+				FromId:        msg.From.ID,
+				UserFirstName: msg.From.FirstName,
+				UserLastName:  msg.From.LastName,
+				UserUsername:  msg.From.UserName,
+			})
+			tx.Commit()
+		}
+	}
+	if update.Message != nil {
+		tx := DB.Begin()
+		msg := update.Message
+		tx.Create(ChatMessage{
+			ChatId:        msg.Chat.ID,
+			MessageId:     int64(update.Message.MessageID),
+			Text:          msg.Text,
+			UserId:        msg.From.ID,
+			Date:          msg.Date,
+			UserFirstName: msg.From.FirstName,
+			UserLastName:  msg.From.LastName,
+			UserUsername:  msg.From.UserName,
+		})
+		if update.Message.Audio != nil {
+			tx.Create(ChatAudio{
+				UniqueFileId:  msg.Audio.FileID,
+				MessageId:     int64(msg.MessageID),
+				ChatId:        msg.Chat.ID,
+				FromId:        msg.From.ID,
+				UserFirstName: msg.From.FirstName,
+				UserLastName:  msg.From.LastName,
+				UserUsername:  msg.From.UserName,
+			})
+		}
+		tx.Commit()
+	}
 }
