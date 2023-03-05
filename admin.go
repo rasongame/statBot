@@ -18,6 +18,9 @@ func adminPrintStatToChat(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
 	cmdArgs := message.CommandArguments()
 	fromTime := time.Now().AddDate(0, 0, -1)
 	fromTimeText := "последние 24 часа"
+	var dayIsSelected bool
+
+	var err error
 	if cmdArgs != "" {
 		args := strings.Split(cmdArgs, " ")
 
@@ -40,9 +43,27 @@ func adminPrintStatToChat(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
 			fromTime = time.Now().AddDate(0, 0, -1)
 			fromTimeText = "последние 24 часа"
 
+		case "cal":
+			dayIsSelected = true
+			pattern := "02.01.2006"
+			fromTime, err = time.Parse(pattern, args[1])
+			fromTimeText = args[1]
+			if err != nil {
+				msg := tgbotapi.NewMessage(message.Chat.ID, err.Error())
+				bot.Send(msg)
+				return
+			}
+
 		default:
-			fromTime = time.Now().AddDate(0, 0, -1)
-			fromTimeText = "последние 24 часа"
+			dayIsSelected = true
+			pattern := "02.01.2006"
+			fromTime, err = time.Parse(pattern, args[0])
+			fromTimeText = args[0]
+			if err != nil {
+				dayIsSelected = false
+				fromTime = time.Now().AddDate(0, 0, -1)
+				fromTimeText = "последние 24 часа"
+			}
 
 		}
 		if len(args) <= 1 {
@@ -62,8 +83,16 @@ func adminPrintStatToChat(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
 			}
 		}
 	}
-
-	totalMessages, users := CalcUserMessages(fromTime, chatID)
+	to := time.Now()
+	if dayIsSelected {
+		to = fromTime.AddDate(0, 0, 1)
+	}
+	totalMessages, users := CalcUserMessages(fromTime, to, chatID)
+	if totalMessages <= 0 {
+		msg := tgbotapi.NewMessage(message.Chat.ID, "No messages? o_O")
+		bot.Send(msg)
+		return
+	}
 	fileName := fmt.Sprintf("%d-activeStat.png", chatID)
 	//RenderActiveUsers(users, fileName, int(math.Min(15, float64(len(users)))), fromTimeText)
 

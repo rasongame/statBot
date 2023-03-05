@@ -84,10 +84,10 @@ func main() {
 		workerpool.WorkerChanPool[w] = make(chan utils.ControlStruct)
 		go workerpool.Worker(w, &baseObj, updates, workerpool.WorkerChanPool[w])
 	}
-	workerpool.WorkerChanPool[1] <- utils.ControlStruct{
-		Cmd:  "Kill",
-		Args: "",
-	}
+	//workerpool.WorkerChanPool[1] <- utils.ControlStruct{
+	//	Cmd:  "Kill",
+	//	Args: "",
+	//}
 	<-weNeedToDie
 
 }

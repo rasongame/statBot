@@ -11,14 +11,12 @@ func init() {
 
 }
 
-func CalcUserMessages(from time.Time, chatId int64) (int, []utils.SomePlaceholder) {
+func CalcUserMessages(from time.Time, to time.Time, chatId int64) (int, []utils.SomePlaceholder) {
 	users := make(map[int64]utils.SomePlaceholder)
 	var messageListForChats []utils.ChatMessage
 	var totalMessages int
-	yesterdayTime := from.Unix()
-
-	//utils.DB.Select("*, COUNT(*)").Where("chat_id = ? and date >= = ", yesterdayTime).Group("user_id").Having("COUNT(*)>1").Find(&messageListForChats)
-	utils.DB.Where("chat_id = ? and date >= ?", chatId, yesterdayTime).Find(&messageListForChats)
+	queryString := "chat_id = ? and ? >= date and date >= ?"
+	utils.DB.Where(queryString, chatId, to.Unix(), from.Unix()).Find(&messageListForChats)
 	for chatMessageKey := range messageListForChats {
 		chatMessage := messageListForChats[chatMessageKey]
 		totalMessages++

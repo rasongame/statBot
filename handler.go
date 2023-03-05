@@ -8,8 +8,7 @@ func AddHandler(command string, handler utils.HandlerFunc, filter utils.FilterFu
 			return h, false
 		}
 	}
-	h := utils.Handler{handler, filter}
+	h := utils.Handler{Handler: handler, Filter: filter}
 	utils.Handlers[command] = h
-    utils.Handler
-    return h, true
+	return h, true
 }

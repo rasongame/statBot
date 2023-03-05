@@ -20,7 +20,9 @@ func printStatToChat(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
 	cmdArgs := message.CommandArguments()
 	fromTime := time.Now().AddDate(0, 0, -1)
 	fromTimeText := "последние 24 часа"
+	var dayIsSelected bool
 
+	var err error
 	if cmdArgs != "" {
 		args := strings.Split(cmdArgs, " ")
 		switch args[0] {
@@ -42,12 +44,31 @@ func printStatToChat(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
 			fromTime = time.Now().AddDate(0, 0, -1)
 			fromTimeText = "последние 24 часа"
 
+		default:
+			dayIsSelected = true
+			pattern := "02.01.2006"
+			fromTime, err = time.Parse(pattern, args[0])
+			fromTimeText = args[0]
+			if err != nil {
+				dayIsSelected = false
+				fromTime = time.Now().AddDate(0, 0, -1)
+				fromTimeText = "последние 24 часа"
+			}
+
 		}
 	}
-
-	totalMessages, users := CalcUserMessages(fromTime, ChatID)
+	to := time.Now()
+	if dayIsSelected {
+		to = fromTime.AddDate(0, 0, 1)
+	}
+	totalMessages, users := CalcUserMessages(fromTime, to, ChatID)
 
 	fileName := fmt.Sprintf("%d-activeStat.png", message.Chat.ID)
+	if totalMessages <= 0 {
+		msg := tgbotapi.NewMessage(message.Chat.ID, "No messages? o_O")
+		bot.Send(msg)
+		return
+	}
 	RenderActiveUsers(users, fmt.Sprintf(fileName), int(math.Min(15, float64(len(users)))), fromTimeText)
 	photo := tgbotapi.FilePath(fileName)
 	msg := tgbotapi.NewPhoto(message.Chat.ID, photo)
