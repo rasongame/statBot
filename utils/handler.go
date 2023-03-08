@@ -43,6 +43,7 @@ func CallbackQueryHandler(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
 	}
 }
 func CallHandler(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
+
 	if update.Message.IsCommand() {
 		handlerName := RightCommandExtractor(update.Message, bot.Self.UserName)
 

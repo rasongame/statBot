@@ -26,6 +26,7 @@ func init() {
 	fmt.Println(chromeContext.Done())
 
 }
+
 func generatePieItems(elements []utils.SomePlaceholder, limit int) []opts.PieData {
 
 	items := make([]opts.PieData, 0)

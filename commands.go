@@ -5,10 +5,20 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"math"
 	"os"
+	"statBot/utils"
 	"strings"
 	"time"
 )
 
+func GenerateTextStats(elements []utils.SomePlaceholder, limit int, fromTimeText string, totalMessages int) string {
+	base := fmt.Sprintf("Статистика за %s.\nВсего сообщений: %d\n", fromTimeText, totalMessages)
+	for i, el := range elements[:limit] {
+
+		base = base + fmt.Sprintf("%d. %s %s: %d\n", 1+i, el.User.FirstName, el.User.LastName, el.Messages)
+	}
+	return base
+
+}
 func GenerateDeleteKeyboard(chatId int64, userId int64) tgbotapi.InlineKeyboardMarkup {
 	return tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(
@@ -69,14 +79,22 @@ func printStatToChat(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
 		bot.Send(msg)
 		return
 	}
-	RenderActiveUsers(users, fmt.Sprintf(fileName), int(math.Min(15, float64(len(users)))), fromTimeText)
-	photo := tgbotapi.FilePath(fileName)
-	msg := tgbotapi.NewPhoto(message.Chat.ID, photo)
-	msg.Caption = fmt.Sprintf("Написано сообщений за %s \nВсего сообщений: %d\n%v", fromTimeText, totalMessages, time.Now().Sub(startTime))
-	msg.ReplyToMessageID = message.MessageID
+	if true {
+		text := GenerateTextStats(users, int(math.Min(15, float64(len(users)))), fromTimeText, totalMessages)
+		msg := tgbotapi.NewMessage(message.Chat.ID, text)
+		msg.ReplyMarkup = GenerateDeleteKeyboard(message.Chat.ID, message.From.ID)
+		msg.ReplyToMessageID = message.MessageID
+		bot.Send(msg)
+	} else {
+		RenderActiveUsers(users, fmt.Sprintf(fileName), int(math.Min(15, float64(len(users)))), fromTimeText)
+		photo := tgbotapi.FilePath(fileName)
+		msg := tgbotapi.NewPhoto(message.Chat.ID, photo)
+		msg.Caption = fmt.Sprintf("Написано сообщений за %s \nВсего сообщений: %d\n%v", fromTimeText, totalMessages, time.Now().Sub(startTime))
+		msg.ReplyToMessageID = message.MessageID
 
-	msg.ReplyMarkup = GenerateDeleteKeyboard(message.Chat.ID, message.From.ID)
-	bot.Send(msg)
+		msg.ReplyMarkup = GenerateDeleteKeyboard(message.Chat.ID, message.From.ID)
+		bot.Send(msg)
+	}
 
 }
 func printPopularWords(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {

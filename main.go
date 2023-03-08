@@ -82,7 +82,7 @@ func main() {
 	for w := 1; w <= runtime.NumCPU()-1; w++ {
 		log.Println("starting worker with id", w)
 		workerpool.WorkerChanPool[w] = make(chan utils.ControlStruct)
-		go workerpool.Worker(w, &baseObj, updates, workerpool.WorkerChanPool[w])
+		go workerpool.UpdateWorker(w, &baseObj, updates, workerpool.WorkerChanPool[w])
 	}
 	//workerpool.WorkerChanPool[1] <- utils.ControlStruct{
 	//	Cmd:  "Kill",

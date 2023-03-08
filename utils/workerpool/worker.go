@@ -15,11 +15,11 @@ func init() {
 	WorkerChanPool = make(map[int]chan utils.ControlStruct)
 }
 
-func Worker(id int, baseObj *utils.SharedBaseObject, updates tgbotapi.UpdatesChannel, controlChannel <-chan utils.ControlStruct) {
+func UpdateWorker(id int, baseObj *utils.SharedBaseObject, updates tgbotapi.UpdatesChannel, controlChannel <-chan utils.ControlStruct) {
 	for {
 		select {
 		case update := <-updates:
-			log.Println(fmt.Sprintf("Worker %d started work with update id %d", id, update.UpdateID))
+			log.Println(fmt.Sprintf("UpdateWorker %d started work with update id %d", id, update.UpdateID))
 			if update.Message != nil {
 				utils.UpdatesProcessed++
 
@@ -38,9 +38,9 @@ func Worker(id int, baseObj *utils.SharedBaseObject, updates tgbotapi.UpdatesCha
 				}
 			}
 			if update.CallbackQuery != nil {
-				utils.CallHandler(baseObj.Bot, update)
+				utils.CallbackQueryHandler(baseObj.Bot, update)
 			}
-			log.Println(fmt.Sprintf("Worker %d finished work with update id %d", id, update.UpdateID))
+			log.Println(fmt.Sprintf("UpdateWorker %d finished work with update id %d", id, update.UpdateID))
 
 		case controlStruct := <-controlChannel:
 			log.Println("Parsing control struct")
