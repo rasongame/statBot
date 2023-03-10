@@ -6,17 +6,89 @@ import (
 	"math"
 	"os"
 	"statBot/utils"
+	"strconv"
 	"strings"
 	"time"
 )
 
+func sum(array []int) int {
+	result := 0
+	for _, v := range array {
+		result += v
+	}
+	return result
+}
+func printTable(table [][]string) string {
+	myStr := ""
+	// get number of columns from the first table row
+	columnLengths := make([]int, len(table[0]))
+	for _, line := range table {
+		for i, val := range line {
+			if len(val) > columnLengths[i] {
+				columnLengths[i] = len(val)
+			}
+		}
+	}
+
+	var lineLength int
+	for _, c := range columnLengths {
+		lineLength += c + 3 // +3 for 3 additional characters before and after each field: "| %s "
+	}
+	lineLength += 1 // +1 for the last "|" in the line
+
+	for i, line := range table {
+		if i == 0 { // table header
+			myStr = myStr + fmt.Sprintf("+%s+\n", strings.Repeat("-", lineLength-2)) // lineLength-2 because of "+" as first and last character
+		}
+		for j, val := range line {
+			myStr = myStr + fmt.Sprintf("| %-*s ", columnLengths[j], val)
+			if j == len(line)-1 {
+				myStr = myStr + fmt.Sprintf("|\n")
+			}
+		}
+		if i == 0 || i == len(table)-1 { // table header or last line
+			myStr = myStr + fmt.Sprintf("+%s+\n", strings.Repeat("-", lineLength-2)) // lineLength-2 because of "+" as first and last character
+		}
+	}
+	return myStr
+}
 func GenerateTextStats(elements []utils.SomePlaceholder, limit int, fromTimeText string, totalMessages int) string {
 	base := fmt.Sprintf("Статистика за %s.\nВсего сообщений: %d\n", fromTimeText, totalMessages)
+	var HoursActivity [4]int
 	for i, el := range elements[:limit] {
 
-		base = base + fmt.Sprintf("%d. %s %s: %d\n", 1+i, el.User.FirstName, el.User.LastName, el.Messages)
+		for i := 0; i <= 23; i++ {
+			switch {
+			case i <= 7 && i > 1:
+				HoursActivity[0] += el.MessagesAt[i]
+			case i <= 12 && i > 8:
+				HoursActivity[1] += el.MessagesAt[i]
+			case i <= 18 && i > 12:
+				HoursActivity[2] += el.MessagesAt[i]
+			case i <= 23 && i > 18:
+				HoursActivity[3] += el.MessagesAt[i]
+			}
+
+		}
+		base = base + fmt.Sprintf(
+			"%d. %s %s: %d\n",
+			1+i,
+			el.User.FirstName,
+			el.User.LastName,
+			el.Messages,
+		)
 	}
-	return base
+	shit := [][]string{
+		{"0-6", "6-12", "12-18", "18-24"},
+		{strconv.Itoa(HoursActivity[3]), strconv.Itoa(HoursActivity[0]), strconv.Itoa(HoursActivity[1]), strconv.Itoa(HoursActivity[2])},
+	}
+	avgMessagesInHour := printTable(shit)
+	//avgMessagesInHour := fmt.Sprintf("+%s+\n", strings.Repeat("-", 45))
+	//avgMessagesInHour = avgMessagesInHour + fmt.Sprintf("| %-6s | %-6s | %-6s | %-6s |\n", "0-6", "6-12", "12-18", "18-24")
+	//avgMessagesInHour = avgMessagesInHour + fmt.Sprintf("|%s|\n", strings.Repeat("-", 45))
+	//avgMessagesInHour = avgMessagesInHour + fmt.Sprintf("| %-6d | %-6d | %-6d | %-6d |\n", HoursActivity[3], HoursActivity[0], HoursActivity[1], HoursActivity[2])
+	//avgMessagesInHour = avgMessagesInHour + fmt.Sprintf("+%s+\n", strings.Repeat("-", 45))
+	return fmt.Sprintf("%s\n%s", base, avgMessagesInHour)
 
 }
 func GenerateDeleteKeyboard(chatId int64, userId int64) tgbotapi.InlineKeyboardMarkup {

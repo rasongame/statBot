@@ -31,6 +31,11 @@ func CalcUserMessages(from time.Time, to time.Time, chatId int64) (int, []utils.
 			}
 
 		}
+		if chatMessage.Date != 0 {
+			tm := time.Unix(int64(chatMessage.Date), 0)
+			hour := tm.Hour()
+			uzer.MessagesAt[hour]++
+		}
 		uzer.Messages++
 		users[chatMessage.UserId] = uzer
 

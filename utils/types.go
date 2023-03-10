@@ -22,7 +22,7 @@ type SharedBaseObject struct {
 type SomePlaceholder struct {
 	User       *tgbotapi.User
 	Messages   int
-	LastSeenAt time.Time
+	MessagesAt [24]int
 }
 type WordFreq struct {
 	Word string

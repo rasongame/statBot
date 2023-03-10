@@ -11,7 +11,6 @@ import (
 	"os"
 	"statBot/utils"
 	"strings"
-	"time"
 )
 
 var (
@@ -20,9 +19,8 @@ var (
 )
 
 func init() {
-	rand.Seed(time.Now().Unix())
 	chromeContext, cancel = chromedp.NewContext(context.Background())
-	//defer cancel()
+	defer cancel()
 	fmt.Println(chromeContext.Done())
 
 }
