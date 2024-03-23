@@ -83,11 +83,7 @@ func GenerateTextStats(elements []utils.SomePlaceholder, limit int, fromTimeText
 		{strconv.Itoa(HoursActivity[3]), strconv.Itoa(HoursActivity[0]), strconv.Itoa(HoursActivity[1]), strconv.Itoa(HoursActivity[2])},
 	}
 	avgMessagesInHour := printTable(shit)
-	//avgMessagesInHour := fmt.Sprintf("+%s+\n", strings.Repeat("-", 45))
-	//avgMessagesInHour = avgMessagesInHour + fmt.Sprintf("| %-6s | %-6s | %-6s | %-6s |\n", "0-6", "6-12", "12-18", "18-24")
-	//avgMessagesInHour = avgMessagesInHour + fmt.Sprintf("|%s|\n", strings.Repeat("-", 45))
-	//avgMessagesInHour = avgMessagesInHour + fmt.Sprintf("| %-6d | %-6d | %-6d | %-6d |\n", HoursActivity[3], HoursActivity[0], HoursActivity[1], HoursActivity[2])
-	//avgMessagesInHour = avgMessagesInHour + fmt.Sprintf("+%s+\n", strings.Repeat("-", 45))
+
 	return fmt.Sprintf("%s\n%s", base, avgMessagesInHour)
 
 }
@@ -103,30 +99,40 @@ func printStatToChat(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
 	fromTime := time.Now().AddDate(0, 0, -1)
 	fromTimeText := "последние 24 часа"
 	var dayIsSelected bool
-
-	var err error
 	if cmdArgs != "" {
 		args := strings.Split(cmdArgs, " ")
-		switch args[0] {
-		case "year":
+		switch arg := args[0]; {
+		case arg == "year":
 			fromTime = time.Now().AddDate(-1, 0, 0)
 			fromTimeText = "последний год"
-		case "alltime":
+		case arg == "alltime":
 			fromTime = time.Unix(0, 0)
 			fromTimeText = "всё время существования бота здесь"
-		case "month":
+		case arg == "month":
 			fromTime = time.Now().AddDate(0, -1, 0)
 			fromTimeText = "последний месяц"
 
-		case "week":
+		case arg == "week":
 			fromTime = time.Now().AddDate(0, 0, -7)
 			fromTimeText = "последнюю неделю"
-
-		case "day":
+		case arg == "day":
 			fromTime = time.Now().AddDate(0, 0, -1)
 			fromTimeText = "последние 24 часа"
+		case strings.HasSuffix(arg, "h"):
+			cleanedDurationString := strings.TrimSuffix(arg, "h")
+			cleanedDurationInteger, _ := strconv.Atoi(cleanedDurationString)
+			parsedDuration, _ := time.ParseDuration(cleanedDurationString)
+			fromTime = time.Now().Add(-parsedDuration)
+			fromTimeText = fmt.Sprintf("последние %d часов", cleanedDurationInteger)
+
+		case strings.HasSuffix(arg, "d"):
+			cleanedDurationString := strings.TrimSuffix(arg, "d")
+			cleanedDurationInteger, _ := strconv.Atoi(cleanedDurationString)
+			fromTime = time.Now().AddDate(0, 0, -cleanedDurationInteger)
+			fromTimeText = fmt.Sprintf("последние %d дней", cleanedDurationInteger)
 
 		default:
+			var err error
 			dayIsSelected = true
 			pattern := "02.01.2006"
 			fromTime, err = time.Parse(pattern, args[0])

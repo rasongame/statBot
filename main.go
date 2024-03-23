@@ -18,6 +18,13 @@ var (
 	allowedChatsMode bool
 	weNeedToDie      chan bool
 	BlacklistedUsers = map[int64]bool{5449020876: true}
+	dbConfig         struct {
+		Host     string
+		User     string
+		Password string
+		Port     int
+		Database string
+	}
 )
 
 // 1 Day = 86400 sec
@@ -26,14 +33,19 @@ func init() {
 }
 func parseFlags() {
 	var allowedChats, blacklistedUsers string
+
 	defaultAllowedChats := "559723688,-1001549183364,-749918079,-1001373811109,-1001558727831,-1001740354030,-1001053617676,-1001386313371"
 	defaultBlackListed := "5449020876"
 
 	flag.StringVar(&allowedChats, "allowedChats", defaultAllowedChats, "allowedChats")
 	flag.StringVar(&blacklistedUsers, "blacklistedUsers", defaultBlackListed, "blacklistedUsers")
 	flag.BoolVar(&allowedChatsMode, "allowedChatsMode", true, "allowedChatsMode")
+	flag.StringVar(&dbConfig.Host, "dbHost", "localhost", "Database host")
+	flag.StringVar(&dbConfig.Password, "dbPassword", "nil", "Database host")
+	flag.StringVar(&dbConfig.User, "dbUser", "postgres", "Database host")
+	flag.StringVar(&dbConfig.Database, "dbName", "rstatbot", "Database host")
+	flag.IntVar(&dbConfig.Port, "dbPort", 5432, "Database host")
 	flag.Parse()
-
 	splittedChats := strings.Split(allowedChats, ",")
 	splittedUsers := strings.Split(blacklistedUsers, ",")
 
@@ -55,9 +67,13 @@ func main() {
 	parseFlags()
 	bot := InitBot()
 	var err error
-	dsn := "host=localhost user=postgres password=dumpdatabase dbname=rstatbot port=5432 sslmode=disable TimeZone=Europe/Moscow"
-	//utils.DB, err = gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
+	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%d sslmode=disable TimeZone=Europe/Moscow",
+		dbConfig.Host, dbConfig.User, dbConfig.Password, dbConfig.Database, dbConfig.Port)
+
 	utils.DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	if err != nil {
+		panic(err)
+	}
 	DB := utils.DB
 	x, err := DB.DB()
 	x.SetMaxOpenConns(runtime.NumCPU() - 1)
@@ -84,10 +100,7 @@ func main() {
 		workerpool.WorkerChanPool[w] = make(chan utils.ControlStruct)
 		go workerpool.UpdateWorker(w, &baseObj, updates, workerpool.WorkerChanPool[w])
 	}
-	//workerpool.WorkerChanPool[1] <- utils.ControlStruct{
-	//	Cmd:  "Kill",
-	//	Args: "",
-	//}
+
 	<-weNeedToDie
 
 }
